@@ -1,4 +1,4 @@
-import { params, ParamsConfig } from '../params';
+import { ParamsConfig } from '../params';
 import * as rqEncode from '../encode/rq';
 import { R3 } from './r3';
 import * as f3 from './f3';
@@ -9,12 +9,12 @@ import { ErrorType } from '../errors';
 export class Rq {
   public coeffs: Int16Array;
 
-  constructor() {
+  constructor(params: ParamsConfig) {
     this.coeffs = new Int16Array(params.P).fill(0);
   }
 
-  static from(coeffs: Int16Array | number[]): Rq {
-    const rq = new Rq();
+  static from(coeffs: Int16Array | Int8Array | number[], params: ParamsConfig): Rq {
+    const rq = new Rq(params);
     
     if (coeffs instanceof Int16Array) {
       rq.coeffs = coeffs;
@@ -25,7 +25,7 @@ export class Rq {
     return rq;
   }
 
-  eq_one(): boolean {
+  eqOne(): boolean {
     for (let i = 1; i < this.coeffs.length; i++) {
       if (this.coeffs[i] !== 0) {
         return false;
@@ -34,7 +34,7 @@ export class Rq {
     return this.coeffs[0] === 1;
   }
 
-  eq_zero(): boolean {
+  eqZero(): boolean {
     for (const c of this.coeffs) {
       if (c !== 0) {
         return false;
@@ -43,7 +43,7 @@ export class Rq {
     return true;
   }
 
-  mult_r3(gq: R3): Rq {
+  multR3(gq: R3, params: ParamsConfig): Rq {
     const out = new Int16Array(params.P);
     const f = this.coeffs;
     const g = gq.coeffs;
@@ -81,10 +81,10 @@ export class Rq {
 
     out.set(fg.subarray(0, params.P));
 
-    return Rq.from(out);
+    return Rq.from(out, params);
   }
 
-  recip<T extends number>(ratio: T): Rq {
+  recip<T extends number>(ratio: T, params: ParamsConfig): Rq {
     const input = this.coeffs;
     const out = new Int16Array(params.P);
     const f = new Int16Array(params.P + 1);
@@ -156,13 +156,13 @@ export class Rq {
     }
 
     if (i16NonzeroMask(delta) === 0) {
-      return Rq.from(out);
+      return Rq.from(out, params);
     } else {
       throw ErrorType.NoSolutionRecip3;
     }
   }
 
-  mult_int(num: number): Rq {
+  multInt(num: number, params: ParamsConfig): Rq {
     const out = new Int16Array(params.P);
 
     for (let i = 0; i < params.P; i++) {
@@ -170,20 +170,20 @@ export class Rq {
       out[i] = fq.freeze(x, params.Q12, params.Q);
     }
 
-    return Rq.from(out);
+    return Rq.from(out, params);
   }
 
-  r3_from_rq(): R3 {
+  r3FromRq(params: ParamsConfig): R3 {
     const out = new Int8Array(params.P);
 
     for (let i = 0; i < params.P; i++) {
       out[i] = f3.freeze(this.coeffs[i]);
     }
 
-    return R3.from(out);
+    return R3.from(out, params);
   }
 
-  to_bytes(params: ParamsConfig): Uint8Array {
+  toBytes(params: ParamsConfig): Uint8Array {
     return rqEncode.encode(this.coeffs, params);
   }
 }

@@ -18,7 +18,7 @@ describe('rq encode/decode', () => {
         const coeffs = shortRandom(() => rng.nextDouble(), params);
         
         // Create Rq instance
-        const rq = Rq.from(coeffs);
+        const rq = Rq.from(coeffs, params);
         
         // Encode to bytes
         const bytes = encode(rq.coeffs, params);
