@@ -1,4 +1,4 @@
-import { params } from '../params';
+import { params, ParamsConfig } from '../params';
 import * as rqEncode from '../encode/rq';
 import { R3 } from './r3';
 import * as f3 from './f3';
@@ -183,7 +183,7 @@ export class Rq {
     return R3.from(out);
   }
 
-  to_bytes(): Uint8Array {
-    return rqEncode.encode(this.coeffs);
+  to_bytes(params: ParamsConfig): Uint8Array {
+    return rqEncode.encode(this.coeffs, params);
   }
 }

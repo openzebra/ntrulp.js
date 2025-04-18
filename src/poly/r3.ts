@@ -1,6 +1,7 @@
-import { params } from '../params';
+import { params, ParamsConfig } from '../params';
 import * as f3 from './f3';
 import * as fq from './fq';
+import { r3Encode } from '../encode/r3';
 import { Rq } from './rq';
 import { ErrorType } from '../errors';
 import { i16NonzeroMask, i16NegativeMask } from '../math';
@@ -165,7 +166,7 @@ export class R3 {
     return Rq.from(out);
   }
 
-  to_bytes(): Uint8Array {
-    return r3Encode.r3_encode(this.coeffs);
+  to_bytes(params: ParamsConfig): Uint8Array {
+    return r3Encode(this.coeffs, params);
   }
 }
