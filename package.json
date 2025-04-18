@@ -14,13 +14,13 @@
     "build:watch": "tsc --watch"
   },
   "keywords": [
-    "ntru", 
-    "ntruprime", 
-    "crypto", 
-    "encryption", 
-    "pure-js", 
-    "post-quantum", 
-    "cryptography", 
+    "ntru",
+    "ntruprime",
+    "crypto",
+    "encryption",
+    "pure-js",
+    "post-quantum",
+    "cryptography",
     "pqc",
     "key-encapsulation",
     "kem"
@@ -45,5 +45,8 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "dependencies": {
+    "@hicaru/chacharand.js": "^0.0.1"
   }
 }

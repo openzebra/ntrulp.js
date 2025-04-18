@@ -1,18 +1,22 @@
 import { ParamsConfig } from '../params';
 import { ErrorType } from '../errors';
+import { ChaChaRng } from '@hicaru/chacharand.js';
 
 export function shuffleArray<T>(arr: T[], seed: bigint, params: ParamsConfig): void {
     if (arr.length !== params.P) {
         throw new Error(ErrorType.SliceLengthNotR3Size);
     }
+
     const n = params.P;
-    const rng = createInternalIntPrng(seed, n);
+    const rng = ChaChaRng.fromU64Seed(seed, 20);
 
     for (let i = 0; i < n; i++) {
         const j = rng();
+
         if (j < 0 || j >= n) {
              throw new Error(ErrorType.OutOfRange);
         }
+
         [arr[i], arr[j]] = [arr[j], arr[i]];
     }
 }
