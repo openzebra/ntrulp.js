@@ -43,9 +43,6 @@
   "peerDependencies": {
     "typescript": "^5.8.3"
   },
-  "dependencies": {
-    "blakejs": "^1.2.1"
-  },
   "publishConfig": {
     "access": "public"
   }
