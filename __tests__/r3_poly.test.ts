@@ -5,53 +5,53 @@ import { params1277, params761 } from '../src/params';
 import * as f3 from '../src/poly/f3';
 
 describe('R3', () => {
-  // describe('recip', () => {
-  //   it('should calculate the reciprocal of R3 polynomials', () => {
-  //     for (let i = 0; i < 2; i++) {
-  //       const getRandomValue = () => Math.random();
+  describe('recip', () => {
+    it('should calculate the reciprocal of R3 polynomials', () => {
+      for (let i = 0; i < 2; i++) {
+        const getRandomValue = () => Math.random();
         
-  //       try {
-  //         const r3 = R3.from(randomSmall(getRandomValue, params1277), params1277);
+        try {
+          const r3 = R3.from(randomSmall(getRandomValue, params1277), params1277);
           
-  //         const out = r3.recip(params1277);
+          const out = r3.recip(params1277);
           
-  //         const one = out.mult(r3, params1277);
+          const one = out.mult(r3, params1277);
           
-  //         expect(one.coeffs[0]).toBe(1);
+          expect(one.coeffs[0]).toBe(1);
           
-  //         expect(one.eq_one()).toBe(true);
-  //       } catch (error) {
-  //         continue;
-  //       }
-  //     }
-  //   });
-  // });
+          expect(one.eq_one()).toBe(true);
+        } catch (error) {
+          continue;
+        }
+      }
+    });
+  });
   
-  // describe('mult', () => {
-  //   it('should correctly multiply two R3 polynomials', () => {
-  //     const f = new Int8Array(params1277.P);
-  //     const g = new Int8Array(params1277.P);
+  describe('mult', () => {
+    it('should correctly multiply two R3 polynomials', () => {
+      const f = new Int8Array(params1277.P);
+      const g = new Int8Array(params1277.P);
       
-  //     for (let i = 0; i < params1277.P; i++) {
-  //       f[i] = (i % 3) - 1;
-  //       g[i] = ((i + 1) % 3) - 1;
-  //     }
+      for (let i = 0; i < params1277.P; i++) {
+        f[i] = (i % 3) - 1;
+        g[i] = ((i + 1) % 3) - 1;
+      }
       
-  //     const r3F = R3.from(f, params1277);
-  //     const r3G = R3.from(g, params1277);
+      const r3F = R3.from(f, params1277);
+      const r3G = R3.from(g, params1277);
       
-  //     const result = r3F.mult(r3G, params1277);
+      const result = r3F.mult(r3G, params1277);
       
-  //     let expected = 0;
-  //     for (let j = 0; j <= 5; j++) {
-  //       if (j < params1277.P && (5 - j) < params1277.P) {
-  //         expected = f3.freeze(expected + f[j] * g[5 - j]);
-  //       }
-  //     }
+      let expected = 0;
+      for (let j = 0; j <= 5; j++) {
+        if (j < params1277.P && (5 - j) < params1277.P) {
+          expected = f3.freeze(expected + f[j] * g[5 - j]);
+        }
+      }
       
-  //     expect(result.coeffs[5]).toBe(expected);
-  //   });
-  // });
+      expect(result.coeffs[5]).toBe(expected);
+    });
+  });
   
   describe('eq_zero and eq_one', () => {
     it('should correctly identify zero polynomials', () => {
