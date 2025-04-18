@@ -69,7 +69,10 @@ export class R3 {
       fg[i - params.P + 1] = f3.freeze(x1);
     }
 
-    out.set(fg.subarray(0, params.P));
+    for (let i = 0; i < params.P; i++) {
+      out[i] = fg[i];
+    }
+    
     return R3.from(out,params);
   }
 

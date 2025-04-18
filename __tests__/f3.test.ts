@@ -41,5 +41,27 @@ describe('F3 Functions', () => {
     
     expect(newRoundArray).toEqual(originalArray);
   });
+
+  test('freeze function should match reference implementation', () => {
+    let values = [0, 42, -1, -42, -66, 1000, -1000, 32767, -32768, 500];
+    let shoul_be = [
+      0,
+      0,
+      -1,
+      0,
+      0,
+      1,
+      -1,
+      1,
+      1,
+      -1,
+   ];
+
+   for (let i = 0; i < values.length; i++) {
+      const r = values[i];
+      const t2 = freeze(r);
+      expect(t2).toBe(shoul_be[i]);
+    }
+  });
 });
 
