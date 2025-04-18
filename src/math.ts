@@ -11,7 +11,7 @@ export function i16NonzeroMask(x: number): number {
 export function i16NegativeMask(x: number): number {
   const u = x & 0xFFFF;
   const u15 = u >>> 15;
-  return -u15;
+  return u15 == 0 ? u15 : -u15;
 }
 
 export function u32DivmodU14(x: number, m: number): [number, number] {
