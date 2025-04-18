@@ -1,4 +1,4 @@
-import { params, ParamsConfig } from '../params';
+import { ParamsConfig } from '../params';
 import * as f3 from './f3';
 import * as fq from './fq';
 import { r3Encode } from '../encode/r3';
@@ -9,12 +9,12 @@ import { i16NonzeroMask, i16NegativeMask } from '../math';
 export class R3 {
   public coeffs: Int8Array;
 
-  constructor() {
+  constructor(params: ParamsConfig) {
     this.coeffs = new Int8Array(params.P).fill(0);
   }
 
-  static from(coeffs: Int8Array | number[]): R3 {
-    const r3 = new R3();
+  static from(coeffs: Int8Array | number[], params: ParamsConfig): R3 {
+    const r3 = new R3(params);
     
     if (coeffs instanceof Int8Array) {
       r3.coeffs = coeffs;
@@ -34,7 +34,7 @@ export class R3 {
     return true;
   }
 
-  mult(g3: R3): R3 {
+  mult(g3: R3, params: ParamsConfig): R3 {
     const f = this.coeffs;
     const g = g3.coeffs;
     const out = new Int8Array(params.P);
@@ -70,7 +70,7 @@ export class R3 {
     }
 
     out.set(fg.subarray(0, params.P));
-    return R3.from(out);
+    return R3.from(out,params);
   }
 
   eq_one(): boolean {
@@ -82,7 +82,7 @@ export class R3 {
     return this.coeffs[0] === 1;
   }
 
-  recip(): R3 {
+  recip(params: ParamsConfig): R3 {
     const input = this.coeffs;
     const out = new Int8Array(params.P);
     const f = new Int8Array(params.P + 1);
@@ -150,13 +150,13 @@ export class R3 {
     }
 
     if (i16NonzeroMask(delta) === 0) {
-      return R3.from(out);
+      return R3.from(out, params);
     } else {
       throw ErrorType.R3NoSolutionRecip;
     }
   }
 
-  rq_from_r3(): Rq {
+  rq_from_r3(params: ParamsConfig): Rq {
     const out = new Int16Array(params.P);
 
     for (let i = 0; i < params.P; i++) {
