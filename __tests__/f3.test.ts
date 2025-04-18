@@ -1,6 +1,5 @@
 import { expect, describe, test } from 'vitest';
-
-import { freeze, round } from '../src/poly';
+import { freeze, round } from '../src/poly/f3';
 
 
 describe('F3 Functions', () => {
