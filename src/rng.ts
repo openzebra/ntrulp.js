@@ -1,6 +1,5 @@
+import { ParamsConfig } from './params';
 import { ErrorType } from './errors';
-import { params } from './params';
-
 
 export function urandom32(getRandomValue: () => number): number {
   const c0 = Math.floor(getRandomValue() * 256);
@@ -20,7 +19,7 @@ export function randomRange3(getRandomValue: () => number): number {
   return ((r & 0x3fffffff) * 3 >>> 30) - 1;
 }
 
-export function randomSmall(getRandomValue: () => number): Int8Array {
+export function randomSmall<T extends ParamsConfig>(getRandomValue: () => number, params: T): Int8Array {
   const r = new Int8Array(params.P);
   for (let i = 0; i < params.P; i++) {
     r[i] = randomRange3(getRandomValue);
@@ -28,7 +27,7 @@ export function randomSmall(getRandomValue: () => number): Int8Array {
   return r;
 }
 
-export function shortRandom(getRandomValue: () => number): Int16Array {
+export function shortRandom<T extends ParamsConfig>(getRandomValue: () => number, params: T): Int16Array {
   const list = new Uint32Array(params.P);
   
   for (let i = 0; i < params.P; i++) {

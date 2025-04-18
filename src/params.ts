@@ -1,4 +1,4 @@
-interface ParamsConfig {
+export interface ParamsConfig {
   P: number;
   Q: number;
   W: number;
