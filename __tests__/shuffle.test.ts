@@ -1,59 +1,53 @@
 import { describe, it, expect } from 'vitest';
 import { shuffleArray, unshuffleArray } from '../src/encode/shuffle'; 
-import { params } from '../src/params';
+import { params, params1277, ParamsConfig } from '../src/params';
 
-describe('Shuffle Tests', () => {
-    const testSeed = 1234567890123456789n; 
-    const P = params.P;
+describe('shuffleArray and unshuffleArray', () => {
+    it('should shuffle and then correctly unshuffle an array using params1277', () => {
+        const seed = BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER));
+        const originalArr: number[] = Array.from({ length: params1277.P }, (_, i) => i);
+        const arr = [...originalArr];
 
-    it('should shuffle an array deterministically', () => {
-        const originalArray1 = Array.from({ length: P }, (_, i) => i);
-        const arrayToShuffle1 = [...originalArray1];
+        shuffleArray(arr, seed, params1277);
 
-        shuffleArray(arrayToShuffle1, testSeed, params);
+        expect(arr).not.toEqual(originalArr);
+        expect(arr.length).toEqual(params1277.P);
 
-        // Check that the array is actually shuffled (highly likely for large P)
-        expect(arrayToShuffle1).not.toEqual(originalArray1);
-        // Check length remains the same
-        expect(arrayToShuffle1.length).toBe(P);
+        unshuffleArray(arr, seed, params1277);
 
-        // Shuffle another identical array with the same seed
-        const originalArray2 = Array.from({ length: P }, (_, i) => i);
-        const arrayToShuffle2 = [...originalArray2];
-        shuffleArray(arrayToShuffle2, testSeed, params);
-
-        // Check that the results are identical (deterministic)
-        expect(arrayToShuffle1).toEqual(arrayToShuffle2);
+        expect(arr).toEqual(originalArr);
     });
 
-    it('unshuffleArray should reverse shuffleArray with the same seed', () => {
-        const originalArray = Array.from({ length: P }, (_, i) => i * 3 - P); // Some sample data
-        const shuffledArray = [...originalArray];
+    it('should throw an error if array length does not match params.P using params1277', () => {
+        const seed = 12345n;
+        const shortArr = Array.from({ length: params1277.P - 1 }, (_, i) => i);
+        const longArr = Array.from({ length: params1277.P + 1 }, (_, i) => i);
 
-        shuffleArray(shuffledArray, testSeed, params);
+        const expectedErrorMessage = (len: number) => `Input array length (${len}) must equal params.P (${params1277.P})`;
 
-        // Ensure it's shuffled first
-        expect(shuffledArray).not.toEqual(originalArray);
+        expect(() => shuffleArray(shortArr, seed, params1277)).toThrow(expectedErrorMessage(shortArr.length));
+        expect(() => shuffleArray(longArr, seed, params1277)).toThrow(expectedErrorMessage(longArr.length));
 
-        const unshuffledArray = [...shuffledArray];
-        unshuffleArray(unshuffledArray, testSeed, params);
-
-        // Check if it's back to the original state
-        expect(unshuffledArray).toEqual(originalArray);
+        expect(() => unshuffleArray(shortArr, seed, params1277)).toThrow(expectedErrorMessage(shortArr.length));
+        expect(() => unshuffleArray(longArr, seed, params1277)).toThrow(expectedErrorMessage(longArr.length));
     });
 
-     it('unshuffleArray with different seed should not restore original array', () => {
-        const originalArray = Array.from({ length: P }, (_, i) => i);
-        const shuffledArray = [...originalArray];
-        const wrongSeedTest = testSeed + 1n;
+    it('should handle different data types with a small P', () => {
+        const localParams: ParamsConfig = { ...params1277, P: 5 };
+        const seed = 98765n;
+        const stringArr = ['x', 'y', 'z', 'w', 'v'];
+        const originalStringArr = [...stringArr];
+        const objArr = [{val:10}, {val:20}, {val:30}, {val:40}, {val:50}];
+        const originalObjArr = objArr.map(o => ({...o}));
 
-        shuffleArray(shuffledArray, testSeed, params);
-        expect(shuffledArray).not.toEqual(originalArray); // Make sure it shuffled
+        shuffleArray(stringArr, seed, localParams);
+        expect(stringArr).not.toEqual(originalStringArr);
+        unshuffleArray(stringArr, seed, localParams);
+        expect(stringArr).toEqual(originalStringArr);
 
-        const unshuffledArray = [...shuffledArray];
-        unshuffleArray(unshuffledArray, wrongSeedTest, params); // Use wrong seed
-
-        // It's extremely unlikely to unshuffle correctly with the wrong seed
-        expect(unshuffledArray).not.toEqual(originalArray);
+        shuffleArray(objArr, seed, localParams);
+        expect(objArr).not.toEqual(originalObjArr);
+        unshuffleArray(objArr, seed, localParams);
+        expect(objArr).toEqual(originalObjArr);
     });
 });

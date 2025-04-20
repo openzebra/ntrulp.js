@@ -47,6 +47,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@hicaru/chacharand.js": "^0.0.1"
+    "@hicaru/chacharand.js": "^0.0.2"
   }
 }
