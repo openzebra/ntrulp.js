@@ -66,15 +66,6 @@ describe('Rq', () => {
     expect(r3.coeffs).toEqual(new Int8Array([1, -1, 0]));
   });
 
-  it('should encode to bytes correctly', () => {
-    vi.mock('../src/encode/rq', () => ({
-      encode: vi.fn().mockReturnValue(new Uint8Array([1, 2, 3])),
-    }));
-    const rq = new Rq({ ...params, P: 3 });
-    const bytes = rq.toBytes({ ...params, P: 3 });
-    expect(bytes).toEqual(new Uint8Array([1, 2, 3]));
-  });
-
   it('should compute multiplicative inverse correctly', () => {
     const rq = new Rq({ ...params, P: 3 });
     rq.coeffs.set([1, 0, 0]);

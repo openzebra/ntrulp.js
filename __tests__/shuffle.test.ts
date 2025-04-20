@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { shuffleArray, unshuffleArray } from '../src/encode/shuffle'; 
-import { params, params1277, ParamsConfig } from '../src/params';
+import { params1277, ParamsConfig } from '../src/params';
+import { ErrorType} from '../src/errors';
 
 describe('shuffleArray and unshuffleArray', () => {
     it('should shuffle and then correctly unshuffle an array using params1277', () => {
@@ -23,7 +24,7 @@ describe('shuffleArray and unshuffleArray', () => {
         const shortArr = Array.from({ length: params1277.P - 1 }, (_, i) => i);
         const longArr = Array.from({ length: params1277.P + 1 }, (_, i) => i);
 
-        const expectedErrorMessage = (len: number) => `Input array length (${len}) must equal params.P (${params1277.P})`;
+        const expectedErrorMessage = (len: number) => ErrorType.SliceLengthNotR3Size;
 
         expect(() => shuffleArray(shortArr, seed, params1277)).toThrow(expectedErrorMessage(shortArr.length));
         expect(() => shuffleArray(longArr, seed, params1277)).toThrow(expectedErrorMessage(longArr.length));
