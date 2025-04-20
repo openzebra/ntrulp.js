@@ -1,0 +1,1462 @@
+Project Path: src
+
+Source Tree:
+
+```txt
+src
+├── __tests__
+│   └── params.ts
+├── compress
+│   └── r3.ts
+├── encode
+│   ├── r3.ts
+│   ├── rq.ts
+│   └── shuffle.ts
+├── errors.ts
+├── key
+│   ├── priv_key.ts
+│   └── pub_key.ts
+├── math.ts
+├── ntru
+│   └── cipher.ts
+├── params.ts
+├── poly
+│   ├── f3.ts
+│   ├── fq.ts
+│   ├── index.ts
+│   ├── r3.ts
+│   └── rq.ts
+└── rng.ts
+
+```
+
+`src/__tests__/params.ts`:
+
+```ts
+// params.test.ts
+import { expect, describe, test } from 'vitest';
+import { 
+  params,
+  params653, 
+  params761, 
+  params857, 
+  params953, 
+  params1013, 
+  params1277 
+} from '../src/params';
+
+describe('NTRU Prime Parameter Sets', () => {
+  test('params653 has correct values', () => {
+    expect(params653.P).toBe(653);
+    expect(params653.Q).toBe(4621);
+    expect(params653.W).toBe(288);
+    expect(params653.Q12).toBe(2310);
+    expect(params653.R3_BYTES).toBe(164);
+    expect(params653.RQ_BYTES).toBe(1306);
+    expect(params653.PUBLICKEYS_BYTES).toBe(1306);
+    expect(params653.SECRETKEYS_BYTES).toBe(328);
+    expect(params653.DIFFICULT).toBe(4);
+  });
+
+  test('params761 has correct values', () => {
+    expect(params761.P).toBe(761);
+    expect(params761.Q).toBe(4591);
+    expect(params761.W).toBe(286);
+    expect(params761.Q12).toBe(2295);
+    expect(params761.R3_BYTES).toBe(191);
+    expect(params761.RQ_BYTES).toBe(1522);
+    expect(params761.PUBLICKEYS_BYTES).toBe(1522);
+    expect(params761.SECRETKEYS_BYTES).toBe(382);
+    expect(params761.DIFFICULT).toBe(6);
+  });
+
+  test('params857 has correct values', () => {
+    expect(params857.P).toBe(857);
+    expect(params857.Q).toBe(5167);
+    expect(params857.W).toBe(322);
+    expect(params857.Q12).toBe(2583);
+    expect(params857.R3_BYTES).toBe(215);
+    expect(params857.RQ_BYTES).toBe(1714);
+    expect(params857.PUBLICKEYS_BYTES).toBe(1714);
+    expect(params857.SECRETKEYS_BYTES).toBe(430);
+    expect(params857.DIFFICULT).toBe(8);
+  });
+
+  test('params953 has correct values', () => {
+    expect(params953.P).toBe(953);
+    expect(params953.Q).toBe(6343);
+    expect(params953.W).toBe(396);
+    expect(params953.Q12).toBe(3171);
+    expect(params953.R3_BYTES).toBe(239);
+    expect(params953.RQ_BYTES).toBe(1906);
+    expect(params953.PUBLICKEYS_BYTES).toBe(1906);
+    expect(params953.SECRETKEYS_BYTES).toBe(478);
+    expect(params953.DIFFICULT).toBe(10);
+  });
+
+  test('params1013 has correct values', () => {
+    expect(params1013.P).toBe(1013);
+    expect(params1013.Q).toBe(7177);
+    expect(params1013.W).toBe(448);
+    expect(params1013.Q12).toBe(3588);
+    expect(params1013.R3_BYTES).toBe(254);
+    expect(params1013.RQ_BYTES).toBe(2026);
+    expect(params1013.PUBLICKEYS_BYTES).toBe(2026);
+    expect(params1013.SECRETKEYS_BYTES).toBe(508);
+    expect(params1013.DIFFICULT).toBe(12);
+  });
+
+  test('params1277 has correct values', () => {
+    expect(params1277.P).toBe(1277);
+    expect(params1277.Q).toBe(7879);
+    expect(params1277.W).toBe(492);
+    expect(params1277.Q12).toBe(3939);
+    expect(params1277.R3_BYTES).toBe(320);
+    expect(params1277.RQ_BYTES).toBe(2554);
+    expect(params1277.PUBLICKEYS_BYTES).toBe(2554);
+    expect(params1277.SECRETKEYS_BYTES).toBe(640);
+    expect(params1277.DIFFICULT).toBe(14);
+  });
+
+  test('default params is params1277', () => {
+    expect(params).toBe(params1277);
+  });
+
+  test('verifies correct mathematical relationships', () => {
+    // Test (Q-1)/2 = Q12 for each parameter set
+    expect(Math.floor((params653.Q - 1) / 2)).toBe(params653.Q12);
+    expect(Math.floor((params761.Q - 1) / 2)).toBe(params761.Q12);
+    expect(Math.floor((params857.Q - 1) / 2)).toBe(params857.Q12);
+    expect(Math.floor((params953.Q - 1) / 2)).toBe(params953.Q12);
+    expect(Math.floor((params1013.Q - 1) / 2)).toBe(params1013.Q12);
+    expect(Math.floor((params1277.Q - 1) / 2)).toBe(params1277.Q12);
+
+    // Test (P+3)/4 = R3_BYTES for each parameter set
+    expect(Math.floor((params653.P + 3) / 4)).toBe(params653.R3_BYTES);
+    expect(Math.floor((params761.P + 3) / 4)).toBe(params761.R3_BYTES);
+    expect(Math.floor((params857.P + 3) / 4)).toBe(params857.R3_BYTES);
+    expect(Math.floor((params953.P + 3) / 4)).toBe(params953.R3_BYTES);
+    expect(Math.floor((params1013.P + 3) / 4)).toBe(params1013.R3_BYTES);
+    expect(Math.floor((params1277.P + 3) / 4)).toBe(params1277.R3_BYTES);
+
+    // Test P*2 = RQ_BYTES for each parameter set
+    expect(params653.P * 2).toBe(params653.RQ_BYTES);
+    expect(params761.P * 2).toBe(params761.RQ_BYTES);
+    expect(params857.P * 2).toBe(params857.RQ_BYTES);
+    expect(params953.P * 2).toBe(params953.RQ_BYTES);
+    expect(params1013.P * 2).toBe(params1013.RQ_BYTES);
+    expect(params1277.P * 2).toBe(params1277.RQ_BYTES);
+  });
+});
+
+```
+
+`src/compress/r3.ts`:
+
+```ts
+import { shuffleArray, unshuffleArray } from '../encode/shuffle';
+import { ParamsConfig } from '../params';
+import { randomSign } from '../rng';
+import { ErrorType } from '../errors';
+
+export const BITS_SIZE = 6;
+export const SYS_SIZE = 8;
+
+export function usizeArrayToBytes(list: number[]): Uint8Array {
+  const buffer = new ArrayBuffer(list.length * SYS_SIZE);
+  const view = new DataView(buffer);
+  for (let i = 0; i < list.length; i++) {
+    const num = list[i];
+    if (!Number.isSafeInteger(num) || num < 0) {
+      throw ErrorType.OutOfRange;
+    }
+    view.setBigUint64(i * SYS_SIZE, BigInt(num), true);
+  }
+  return new Uint8Array(buffer);
+}
+
+export function bytesToUsizeArray(bytes: Uint8Array): number[] {
+  if (bytes.length % SYS_SIZE !== 0) {
+    throw ErrorType.ByteslengthError;
+  }
+  const result: number[] = new Array(bytes.length / SYS_SIZE);
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  for (let i = 0; i < result.length; i++) {
+    const val = view.getBigUint64(i * SYS_SIZE, true);
+    if (val > BigInt(Number.MAX_SAFE_INTEGER)) {
+        throw ErrorType.OutOfRange;
+    }
+    result[i] = Number(val);
+  }
+  return result;
+}
+
+export function packBytes(dataBytes: Uint8Array, size: number[], seed: bigint): Uint8Array {
+  const sizeBytes = usizeArrayToBytes(size);
+  const sizeLenBytes = usizeArrayToBytes([sizeBytes.length]);
+  const seedBytes = new Uint8Array(8);
+  new DataView(seedBytes.buffer).setBigUint64(0, seed, true);
+
+  const totalLength = dataBytes.length + sizeBytes.length + sizeLenBytes.length + seedBytes.length;
+  const result = new Uint8Array(totalLength);
+  let offset = 0;
+
+  result.set(dataBytes, offset);
+  offset += dataBytes.length;
+  result.set(sizeBytes, offset);
+  offset += sizeBytes.length;
+  result.set(sizeLenBytes, offset);
+  offset += sizeLenBytes.length;
+  result.set(seedBytes, offset);
+
+  return result;
+}
+
+export function unpackBytes(bytes: Uint8Array): { dataBytes: Uint8Array; size: number[]; seed: bigint } {
+  const bytesLen = bytes.length;
+  const X2_SYS_SIZE = SYS_SIZE * 2;
+
+  if (bytesLen < X2_SYS_SIZE) {
+    throw ErrorType.ByteslengthError;
+  }
+
+  let seed: bigint;
+  try {
+    const seedBytes = bytes.subarray(bytesLen - 8);
+    seed = new DataView(seedBytes.buffer, seedBytes.byteOffset).getBigUint64(0, true);
+  } catch (e) {
+      throw ErrorType.SeedSliceError;
+  }
+
+  let sizeLen: number;
+   try {
+    const sizeLenBytes = bytes.subarray(bytesLen - X2_SYS_SIZE, bytesLen - SYS_SIZE);
+    const sizeLenArray = bytesToUsizeArray(sizeLenBytes);
+    if (sizeLenArray.length !== 1) {
+        throw ErrorType.SizeSliceError;
+    }
+    sizeLen = sizeLenArray[0];
+   } catch (e) {
+       throw ErrorType.SizeSliceError;
+   }
+
+  const dataSectionLength = bytesLen - sizeLen - X2_SYS_SIZE;
+  if (bytesLen < sizeLen + X2_SYS_SIZE || dataSectionLength < 0 ) {
+      throw ErrorType.ByteslengthError;
+  }
+
+   let size: number[];
+   try {
+        const sizeBytes = bytes.subarray(bytesLen - sizeLen - X2_SYS_SIZE, bytesLen - X2_SYS_SIZE);
+        if (sizeBytes.length !== sizeLen) {
+             throw ErrorType.SizeSliceError;
+        }
+        size = bytesToUsizeArray(sizeBytes);
+   } catch (e) {
+        throw ErrorType.SizeSliceError;
+   }
+
+  const dataBytes = bytes.subarray(0, dataSectionLength);
+
+  return { dataBytes, size, seed };
+}
+
+export function convertToTernary(num: number): Int8Array {
+   if (!Number.isInteger(num) || num < 0 || num > 255) {
+       throw ErrorType.OutOfRange;
+   }
+  const result = new Int8Array(BITS_SIZE).fill(0);
+  let n = num;
+  for (let i = BITS_SIZE - 1; i >= 0; i--) {
+    const digit = n % 3;
+    result[i] = digit === 2 ? -1 : (digit as -1 | 0 | 1);
+    n = Math.floor(n / 3);
+  }
+  return result;
+}
+
+export function convertToDecimal(ternary: Int8Array | ArrayLike<number>): number {
+  if (ternary.length !== BITS_SIZE) {
+    throw ErrorType.SliceLengthNotR3Size;
+  }
+  let result = 0;
+  for (let i = 0; i < BITS_SIZE; i++) {
+    const digit = ternary[i];
+    if (digit !== 0 && digit !== 1 && digit !== -1) {
+       throw ErrorType.CompressError;
+    }
+    const x = digit === -1 ? 2 : digit;
+    result = result * 3 + x;
+  }
+  return result & 0xFF;
+}
+
+export function r3EncodeChunks(r3: Int8Array): Uint8Array {
+  const chunkCount = Math.ceil(r3.length / BITS_SIZE);
+  const output = new Uint8Array(chunkCount);
+  for (let i = 0; i < chunkCount; i++) {
+    const start = i * BITS_SIZE;
+    const end = Math.min(start + BITS_SIZE, r3.length);
+    const chunk = r3.subarray(start, end);
+    const bits = new Int8Array(BITS_SIZE).fill(0);
+    bits.set(chunk);
+    output[i] = convertToDecimal(bits);
+  }
+  return output;
+}
+
+export function r3DecodeChunks(bytes: Uint8Array): Int8Array {
+  const output = new Int8Array(bytes.length * BITS_SIZE);
+  for (let i = 0; i < bytes.length; i++) {
+    const byte = bytes[i];
+    const bits = convertToTernary(byte);
+    output.set(bits, i * BITS_SIZE);
+  }
+  return output;
+}
+
+export function r3MergeWChunks(chunks: Int8Array[], size: number[], seed: bigint, params: ParamsConfig): Int8Array {
+  if (chunks.length !== size.length) {
+    throw ErrorType.SliceLengthNotR3Size;
+  }
+  const output: number[] = [];
+  for (let i = 0; i < chunks.length; i++) {
+    const chunkSeed = seed + BigInt(i);
+    const point = size[i];
+    const chunk = chunks[i];
+
+    if (chunk.length !== params.P) {
+        throw ErrorType.SliceLengthNotR3Size;
+    }
+    if (point < 0 || point > params.P) {
+      throw ErrorType.OutOfRange;
+    }
+
+    const part = Array.from(chunk);
+    unshuffleArray(part, chunkSeed, params);
+    output.push(...part.slice(0, point));
+  }
+  return Int8Array.from(output);
+}
+
+export function r3SplitWChunks(
+  input: Int8Array,
+  rng: () => number,
+  params: ParamsConfig
+): { chunks: Int8Array[]; size: number[]; seed: bigint } {
+  const LIMIT = params.W - params.DIFFICULT;
+  const P = params.P;
+  const W = params.W;
+
+  const seedHigh = BigInt(rng());
+  const seedLow = BigInt(rng());
+  const originSeed = (seedHigh << 32n) | seedLow;
+
+  let currentSeed = originSeed;
+  const chunks: Int8Array[] = [];
+  const size: number[] = [];
+  let part = new Int8Array(P);
+
+  let sum = 0;
+  let inputPtr = 0;
+  let partPtr = 0;
+
+  while (inputPtr < input.length) {
+    while (sum < LIMIT && inputPtr < input.length) {
+      const value = input[inputPtr];
+      if (value !== -1 && value !== 0 && value !== 1) {
+        throw ErrorType.CompressError;
+      }
+      const absValue = Math.abs(value);
+
+      if (partPtr >= P) {
+          throw ErrorType.OverFlow;
+      }
+
+      sum += absValue;
+      part[partPtr] = value;
+      inputPtr++;
+      partPtr++;
+    }
+
+    size.push(partPtr);
+
+    while (sum < W) {
+       if (partPtr >= P) {
+           throw ErrorType.OverFlow;
+       }
+       const value = randomSign(rng);
+       part[partPtr] = value;
+       sum += 1;
+       partPtr++;
+    }
+
+    if (sum !== W) {
+      throw ErrorType.SumShouldEqW;
+    }
+
+     for (let k = partPtr; k < P; k++) {
+        part[k] = 0;
+    }
+
+    const partArray = Array.from(part);
+    shuffleArray(partArray, currentSeed, params);
+    chunks.push(Int8Array.from(partArray));
+
+    part = new Int8Array(P);
+    currentSeed += 1n;
+    partPtr = 0;
+    sum = 0;
+  }
+
+  return { chunks, size, seed: originSeed };
+}
+
+```
+
+`src/encode/r3.ts`:
+
+```ts
+import { ParamsConfig } from '../params';
+
+export function r3Encode<T extends ParamsConfig>(f: Int8Array, params: T): Uint8Array {
+  const s = new Uint8Array(params.R3_BYTES);
+
+  for (let i = 0; i < Math.floor(f.length / 4); i++) {
+    s[i] = 0;
+    for (let j = 0; j < 4; j++) {
+      if (i * 4 + j < f.length) {
+        s[i] |= ((f[i * 4 + j] + 1) & 0x3) << (j * 2);
+      }
+    }
+  }
+
+  if (params.P % 4 !== 0) {
+    s[Math.floor(params.P / 4)] = (f[params.P - 1] + 1) & 0xFF;
+  }
+
+  return s;
+}
+
+export function r3Decode<T extends ParamsConfig>(s: Uint8Array, params: T): Int8Array {
+  const f = new Int8Array(params.P);
+  let x: number;
+  let i = 0;
+
+  const swap = (x: number): number => (x & 3) - 1;
+
+  while (i < Math.floor(params.P / 4)) {
+    x = s[i];
+    f[i * 4] = swap(x);
+    x >>= 2;
+    f[i * 4 + 1] = swap(x);
+    x >>= 2;
+    f[i * 4 + 2] = swap(x);
+    x >>= 2;
+    f[i * 4 + 3] = swap(x);
+    i++;
+  }
+
+  if (params.P % 4 !== 0) {
+    x = s[i];
+    f[i * 4] = swap(x);
+  }
+
+  return f;
+}
+
+```
+
+`src/encode/rq.ts`:
+
+```ts
+import { ParamsConfig } from '../params';
+
+export function encode(input: Int16Array, { P, RQ_BYTES }: ParamsConfig): Uint8Array {
+  const bytes = new Uint8Array(RQ_BYTES);
+
+  for (let i = 0; i < P; i++) {
+    const value = input[i];
+    const byteIndex = i * 2;
+    bytes[byteIndex] = (value >> 8) & 0xFF;
+    bytes[byteIndex + 1] = value & 0xFF;
+  }
+
+  return bytes;
+}
+
+export function decode(input: Uint8Array, { P }: ParamsConfig): Int16Array {
+  const coeffs = new Int16Array(P);
+
+  for (let i = 0; i < P; i++) {
+    const byteIndex = i * 2;
+    coeffs[i] = ((input[byteIndex] << 8) | input[byteIndex + 1]) << 0;
+  }
+
+  return coeffs;
+}
+
+```
+
+`src/encode/shuffle.ts`:
+
+```ts
+import { ParamsConfig } from '../params';
+import { ChaChaRng } from '@hicaru/chacharand.js';
+import { ErrorType } from '../errors';
+
+export function shuffleArray<T>(arr: T[], seed: bigint, params: ParamsConfig): void {
+    if (arr.length !== params.P) {
+        throw new Error(ErrorType.SliceLengthNotR3Size);
+    }
+
+    const n = params.P;
+    const rng = ChaChaRng.fromU64Seed(seed, 20);
+
+    for (let i = 0; i < n; i++) {
+        const j = rng.genRangeU32(0, n);
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+}
+
+export function unshuffleArray<T>(arr: T[], seed: bigint, params: ParamsConfig): void {
+    if (arr.length !== params.P) {
+        throw new Error(ErrorType.SliceLengthNotR3Size);
+    }
+
+    const n = params.P;
+    const rng = ChaChaRng.fromU64Seed(seed, 20);
+
+    const indexList: number[] = [];
+    for (let i = 0; i < n; i++) {
+        const j = rng.genRangeU32(0, n);
+        indexList.push(j);
+    }
+
+    for (let i = n - 1; i >= 0; i--) {
+        const j = indexList[i];
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+}
+
+```
+
+`src/errors.ts`:
+
+```ts
+export enum ErrorType {
+  OverFlow = 'OverFlow',
+  Mod2ShouldZero = 'Mod2ShouldZero',
+  Mod4ShouldOne = 'Mod4ShouldOne',
+  OutOfRange = 'OutOfRange',
+  SumShouldEqW = 'SumShouldEqW',
+  PolyError = 'PolyError',
+  CompressError = 'CompressError',
+  KemError = 'KemError',
+  InvalidRqChunkSize = 'InvalidRqChunkSize',
+  SyncThreadJoinError = 'SyncThreadJoinError',
+  SyncLockError = 'SyncLockError',
+  NoSolutionRecip3 = 'NoSolutionRecip3',
+  R3NoSolutionRecip = 'R3NoSolutionRecip',
+  SliceLengthNotR3Size = 'SliceLengthNotR3Size',
+  SeedSliceError = 'SeedSliceError',
+  SizeSliceError = 'SizeSliceError',
+  ByteslengthError = 'ByteslengthError',
+  InvalidR3GInvrBytes = 'InvalidR3GInvrBytes',
+  InvalidR3FBytes = 'InvalidR3FBytes'
+}
+
+```
+
+`src/key/priv_key.ts`:
+
+```ts
+import { ParamsConfig } from '../params';
+import { R3 } from '../poly/r3';
+import { Rq } from '../poly/rq';
+import { ErrorType } from '../errors';
+import { r3Decode } from '../encode/r3';
+
+export class PrivKey {
+  public f: R3;
+  public ginv: R3;
+
+  constructor(f: R3, ginv: R3) {
+    this.f = f;
+    this.ginv = ginv;
+  }
+
+  static compute(f: Rq, g: R3, params: ParamsConfig): PrivKey {
+    try {
+      const ginv = g.recip(params);
+      const f_r3 = f.r3FromRq(params);
+      return new PrivKey(f_r3, ginv);
+    } catch (e) {
+      if (e === ErrorType.R3NoSolutionRecip) {
+        throw ErrorType.R3NoSolutionRecip; 
+      } else {
+        throw ErrorType.KemError; 
+      }
+    }
+  }
+
+  toBytes(params: ParamsConfig): Uint8Array {
+    const sk = new Uint8Array(params.SECRETKEYS_BYTES);
+    const ginvBytes = this.ginv.toBytes(params);
+    const fBytes = this.f.toBytes(params);
+
+    if (ginvBytes.length !== params.R3_BYTES || fBytes.length !== params.R3_BYTES) {
+      throw ErrorType.PolyError; 
+    }
+
+    sk.set(ginvBytes, 0);
+    sk.set(fBytes, params.R3_BYTES);
+
+    return sk;
+  }
+
+  static import(skBytes: Uint8Array, params: ParamsConfig): PrivKey {
+    if (skBytes.length !== params.SECRETKEYS_BYTES) {
+      throw ErrorType.ByteslengthError; 
+    }
+
+    let ginvBytes: Uint8Array;
+    let fBytes: Uint8Array;
+
+    try {
+      ginvBytes = skBytes.subarray(0, params.R3_BYTES);
+      fBytes = skBytes.subarray(params.R3_BYTES); 
+    } catch (e) {
+       throw ErrorType.KemError;
+    }
+    
+    if (ginvBytes.length !== params.R3_BYTES) throw ErrorType.InvalidR3GInvrBytes;
+    if (fBytes.length !== params.R3_BYTES) throw ErrorType.InvalidR3FBytes;
+
+
+    const ginvCoeffs = r3Decode(ginvBytes, params);
+    const fCoeffs = r3Decode(fBytes, params);
+
+    const ginv = R3.from(ginvCoeffs, params);
+    const f = R3.from(fCoeffs, params);
+
+    return new PrivKey(f, ginv);
+  }
+}
+
+```
+
+`src/key/pub_key.ts`:
+
+```ts
+import { ParamsConfig } from '../params';
+import * as rqEncode from '../encode/rq';
+import { R3 } from '../poly/r3';
+import { Rq } from '../poly/rq';
+import { ErrorType } from '../errors';
+import { PrivKey } from './priv_key'; 
+
+
+export class PubKey extends Rq {
+
+    constructor(params: ParamsConfig, coeffs?: Int16Array) {
+       super(params);
+       if (coeffs) {
+           if (coeffs.length !== params.P) {
+               throw ErrorType.PolyError; 
+           }
+           this.coeffs = coeffs;
+       }
+    }
+
+    static compute(f: Rq, g: R3, params: ParamsConfig): PubKey {
+       try {
+          const finv = f.recip(3, params);
+          const h = finv.multR3(g, params);
+          return new PubKey(params, h.coeffs); 
+       } catch (e) {
+          if (e === ErrorType.NoSolutionRecip3) {
+              throw ErrorType.NoSolutionRecip3;
+          } else {
+              throw ErrorType.KemError; 
+          }
+       }
+    }
+
+    static fromSk(privKey: PrivKey, params: ParamsConfig): PubKey {
+        try {
+           const f_r3 = privKey.f;
+           const ginv = privKey.ginv;
+           const f = Rq.from(Int16Array.from(f_r3.coeffs), params); 
+           const g = ginv.recip(params);
+           const finv = f.recip(3, params);
+           const h = finv.multR3(g, params);
+           return new PubKey(params, h.coeffs);
+        } catch (e) {
+            if (e === ErrorType.R3NoSolutionRecip || e === ErrorType.NoSolutionRecip3) {
+                throw e; 
+            } else {
+                throw ErrorType.KemError; 
+            }
+        }
+   }
+
+    static import(bytes: Uint8Array, params: ParamsConfig): PubKey {
+      if (bytes.length !== params.PUBLICKEYS_BYTES) {
+         throw ErrorType.ByteslengthError;
+      }
+      try {
+          const decodedCoeffs = rqEncode.decode(bytes, params);
+          return new PubKey(params, decodedCoeffs); 
+      } catch (e) {
+          throw ErrorType.KemError; 
+      }
+   }
+}
+
+```
+
+`src/math.ts`:
+
+```ts
+const V = 0x80000000;
+
+export function i16NonzeroMask(x: number): number {
+  const u = x & 0xFFFF;
+  let v = u;
+  v = v ? ~(v - 1) : 0;
+  v >>>= 31;
+  return v ? -1 : 0;
+}
+
+export function i16NegativeMask(x: number): number {
+  const u = x & 0xFFFF;
+  const u15 = u >>> 15;
+  return u15 == 0 ? u15 : -u15;
+}
+
+export function u32DivmodU14(x: number, m: number): [number, number] {
+  let v = V;
+  let qpart: number;
+  v = Math.floor(v / m);
+  
+  let q = 0;
+  qpart = Math.floor((x * v) / 0x80000000);
+  let newX = x - qpart * m;
+  
+  q += qpart;
+  qpart = Math.floor((newX * v) / 0x80000000);
+  let finalX = newX - qpart * m;
+  
+  q += qpart;
+  let subX = finalX - m;
+  
+  q += 1;
+  const mask = (subX >>> 31) !== 0 ? 0xFFFFFFFF : 0;
+  
+  const addedX = subX + (mask & m);
+  const finalQ = q + mask;
+  
+  return [finalQ >>> 0, addedX >>> 0];
+}
+
+export function i32DivmodU14(x: number, m: number): [number, number] {
+  const px = V;
+  const [mut_uq, ur] = u32DivmodU14((px + x) >>> 0, m);
+  let mut_ur = ur;
+  const [uq2, ur2] = u32DivmodU14(px, m);
+  
+  mut_ur = mut_ur - ur2;
+  let uq = mut_uq - uq2;
+  
+  const mask = (mut_ur >>> 15) !== 0 ? 0xFFFFFFFF : 0;
+  
+  mut_ur = (mut_ur + (mask & m)) >>> 0;
+  uq = (uq + mask) >>> 0;
+  
+  return [uq, mut_ur];
+}
+
+export function i32ModU14(x: number, m: number): number {
+  return i32DivmodU14(x, m)[1];
+}
+
+export function u32ModU14(x: number, m: number): number {
+  return u32DivmodU14(x, m)[1];
+}
+
+export function weightWMask(r: Int8Array, W: number): number {
+  const weight = r.reduce((sum, x) => sum + (x & 1), 0);
+  return i16NonzeroMask(weight - W);
+}
+
+```
+
+`src/ntru/cipher.ts`:
+
+```ts
+import { ParamsConfig } from '../params';
+import { PrivKey } from '../key/priv_key';
+import { PubKey } from '../key/pub_key';
+import { Rq } from '../poly/rq';
+import { R3 } from '../poly/r3';
+import { round } from '../poly/f3';
+import { weightWMask } from '../math';
+import { r3Decode } from '../encode/r3';
+import { decode as rqDecode } from '../encode/rq';
+import { ErrorType } from '../errors';
+
+
+export function rqDecrypt(c: Rq, privKey: PrivKey, params: ParamsConfig): R3 {
+    const f = privKey.f;
+    const ginv = privKey.ginv;
+    const r_coeffs = new Int8Array(params.P);
+
+    const cf = c.multR3(f, params);
+    const cf3 = cf.multInt(3, params);
+    const e = cf3.r3FromRq(params);
+    const ev = e.mult(ginv, params);
+
+    const mask: number = weightWMask(ev.coeffs, params.W);
+
+    for (let i = 0; i < params.P; i++) {
+       const coeff = ev.coeffs[i];
+       if (i < params.W) {
+           r_coeffs[i] = (((coeff ^ 1) & ~mask) ^ 1);
+       } else {
+           r_coeffs[i] = (coeff & ~mask);
+       }
+    }
+
+    return R3.from(r_coeffs, params);
+}
+
+
+export function r3Encrypt(r: R3, pubKey: PubKey, params: ParamsConfig): Rq {
+    const hr = pubKey.multR3(r, params);
+
+    const coeffsAsNumbers = Array.from(hr.coeffs);
+    round(coeffsAsNumbers);
+    hr.coeffs = Int16Array.from(coeffsAsNumbers);
+
+    return hr;
+}
+
+
+export function staticBytesEncrypt(bytes: Uint8Array, pubKey: PubKey, params: ParamsConfig): Uint8Array {
+     if (bytes.length !== params.R3_BYTES) {
+         throw ErrorType.ByteslengthError;
+     }
+     const r_coeffs = r3Decode(bytes, params);
+     const r = R3.from(r_coeffs, params);
+     const encryptedRq = r3Encrypt(r, pubKey, params);
+     return encryptedRq.toBytes(params);
+}
+
+
+export function staticBytesDecrypt(cipherBytes: Uint8Array, privKey: PrivKey, params: ParamsConfig): Uint8Array {
+     if (cipherBytes.length !== params.RQ_BYTES) {
+          throw ErrorType.ByteslengthError;
+     }
+     const c_coeffs = rqDecode(cipherBytes, params);
+     const c = Rq.from(c_coeffs, params);
+     const decryptedR3 = rqDecrypt(c, privKey, params);
+
+     return decryptedR3.toBytes(params);
+}
+
+```
+
+`src/params.ts`:
+
+```ts
+export interface ParamsConfig {
+  P: number;
+  Q: number;
+  W: number;
+  Q12: number;
+  R3_BYTES: number;
+  RQ_BYTES: number;
+  PUBLICKEYS_BYTES: number;
+  SECRETKEYS_BYTES: number;
+  DIFFICULT: number;
+}
+
+export const params653: ParamsConfig = {
+  P: 653,
+  Q: 4621,
+  W: 288,
+  Q12: 2310,   // (4621 - 1) / 2
+  R3_BYTES: 164,  // (653 + 3) / 4
+  RQ_BYTES: 1306,  // 653 * 2
+  PUBLICKEYS_BYTES: 1306,  // 653 * 2
+  SECRETKEYS_BYTES: 328,  // 164 * 2
+  DIFFICULT: 4
+};
+
+export const params761: ParamsConfig = {
+  P: 761,
+  W: 286,
+  Q: 4591,
+  Q12: 2295,  // (4591 - 1) / 2
+  R3_BYTES: 191,  // (761 + 3) / 4
+  RQ_BYTES: 1522,  // 761 * 2
+  PUBLICKEYS_BYTES: 1522,  // 761 * 2
+  SECRETKEYS_BYTES: 382,  // 191 * 2
+  DIFFICULT: 6
+};
+
+export const params857: ParamsConfig = {
+  P: 857,
+  W: 322,
+  Q: 5167,
+  Q12: 2583,  // (5167 - 1) / 2
+  R3_BYTES: 215,  // (857 + 3) / 4
+  RQ_BYTES: 1714,  // 857 * 2
+  PUBLICKEYS_BYTES: 1714,  // 857 * 2
+  SECRETKEYS_BYTES: 430,  // 215 * 2
+  DIFFICULT: 8
+};
+
+export const params953: ParamsConfig = {
+  P: 953,
+  Q: 6343,
+  W: 396,
+  Q12: 3171,  // (6343 - 1) / 2
+  R3_BYTES: 239,  // (953 + 3) / 4
+  RQ_BYTES: 1906,  // 953 * 2
+  PUBLICKEYS_BYTES: 1906,  // 953 * 2
+  SECRETKEYS_BYTES: 478,  // 239 * 2
+  DIFFICULT: 10
+};
+
+export const params1013: ParamsConfig = {
+  P: 1013,
+  Q: 7177,
+  W: 448,
+  Q12: 3588,  // (7177 - 1) / 2
+  R3_BYTES: 254,  // (1013 + 3) / 4
+  RQ_BYTES: 2026,  // 1013 * 2
+  PUBLICKEYS_BYTES: 2026,  // 1013 * 2
+  SECRETKEYS_BYTES: 508,  // 254 * 2
+  DIFFICULT: 12
+};
+
+export const params1277: ParamsConfig = {
+  P: 1277,
+  Q: 7879,
+  W: 492,
+  Q12: 3939,  // (7879 - 1) / 2
+  R3_BYTES: 320,  // (1277 + 3) / 4
+  RQ_BYTES: 2554,  // 1277 * 2
+  PUBLICKEYS_BYTES: 2554,  // 1277 * 2
+  SECRETKEYS_BYTES: 640,  // 320 * 2
+  DIFFICULT: 14
+};
+
+export const params: ParamsConfig = params1277;
+
+```
+
+`src/poly/f3.ts`:
+
+```ts
+export function freeze(a: number): number {
+  const a_32 = a;
+  const b = a_32 - (3 * Math.floor((10923 * a_32) / 32768));
+  
+  const c = b - (3 * Math.floor((89478485 * b + 134217728) / 268435456));
+
+  return c;
+}
+
+export function round(a: number[]): void {
+  for (let i = 0; i < a.length; i++) {
+    a[i] -= freeze(a[i]);
+  }
+}
+
+```
+
+`src/poly/fq.ts`:
+
+```ts
+import { i32ModU14 } from "../math";
+
+export function freeze(x: number, q12: number, q: number): number {
+  const r = i32ModU14(x + q12, q);
+  const result = r - q12;
+  return result === 0 ? 0 : result;
+}
+
+export function recip(a1: number, q12: number, q: number): number {
+  let i = 1;
+  let ai = a1;
+
+  while (i < q - 2) {
+    ai = freeze((a1 * ai), q12, q);
+    i += 1;
+  }
+
+  return ai;
+}
+
+```
+
+`src/poly/r3.ts`:
+
+```ts
+import { ParamsConfig } from '../params';
+import * as f3 from './f3';
+import * as fq from './fq';
+import { r3Encode } from '../encode/r3';
+import { Rq } from './rq';
+import { ErrorType } from '../errors';
+import { i16NonzeroMask, i16NegativeMask } from '../math';
+
+export class R3 {
+  public coeffs: Int8Array;
+
+  constructor(params: ParamsConfig) {
+    this.coeffs = new Int8Array(params.P).fill(0);
+  }
+
+  static from(coeffs: Int8Array | number[], params: ParamsConfig): R3 {
+    const r3 = new R3(params);
+    
+    if (coeffs instanceof Int8Array) {
+      r3.coeffs = coeffs;
+    } else {
+      r3.coeffs = new Int8Array(coeffs);
+    }
+    
+    return r3;
+  }
+
+  eqZero(): boolean {
+    for (const c of this.coeffs) {
+      if (c !== 0) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  mult(g3: R3, params: ParamsConfig): R3 {
+    const f = this.coeffs;
+    const g = g3.coeffs;
+    const out = new Int8Array(params.P);
+    const fg = new Int8Array(params.P + params.P - 1);
+
+    const quotient = (r: number, f: number, g: number): number => {
+      const x = r + f * g;
+      return f3.freeze(x);
+    };
+
+    for (let i = 0; i < params.P; i++) {
+      let r = 0;
+      for (let j = 0; j <= i; j++) {
+        r = quotient(r, f[j], g[i - j]);
+      }
+      fg[i] = r;
+    }
+
+    for (let i = params.P; i < params.P + params.P - 1; i++) {
+      let r = 0;
+      for (let j = i - params.P + 1; j < params.P; j++) {
+        r = quotient(r, f[j], g[i - j]);
+      }
+      fg[i] = r;
+    }
+
+    for (let i = params.P + params.P - 2; i >= params.P; i--) {
+      const x0 = fg[i - params.P] + fg[i];
+      const x1 = fg[i - params.P + 1] + fg[i];
+
+      fg[i - params.P] = f3.freeze(x0);
+      fg[i - params.P + 1] = f3.freeze(x1);
+    }
+
+    for (let i = 0; i < params.P; i++) {
+      out[i] = fg[i];
+    }
+    
+    return R3.from(out,params);
+  }
+
+  eqOne(): boolean {
+    for (let i = 1; i < this.coeffs.length; i++) {
+      if (this.coeffs[i] !== 0) {
+        return false;
+      }
+    }
+    return this.coeffs[0] === 1;
+  }
+
+  recip(params: ParamsConfig): R3 {
+    const input = this.coeffs;
+    const out = new Int8Array(params.P);
+    const f = new Int8Array(params.P + 1);
+    const g = new Int8Array(params.P + 1);
+    const v = new Int8Array(params.P + 1);
+    const r = new Int8Array(params.P + 1);
+    let delta = 1;
+    let sign: number;
+    let swap: number;
+    let t: number;
+
+    const quotient = (g: number, sign: number, f: number): number => {
+      const x = g + sign * f;
+      return f3.freeze(x);
+    };
+
+    r[0] = 1;
+
+    f[0] = 1;
+    f[params.P - 1] = -1;
+    f[params.P] = -1;
+
+    for (let i = 0; i < params.P; i++) {
+      g[params.P - 1 - i] = input[i];
+    }
+
+    g[params.P] = 0;
+
+    for (let _ = 0; _ < 2 * params.P - 1; _++) {
+      for (let i = params.P; i >= 1; i--) {
+        v[i] = v[i - 1];
+      }
+      v[0] = 0;
+
+      sign = -g[0] * f[0];
+      swap = (i16NegativeMask(-delta) & i16NonzeroMask(g[0]));
+      delta ^= swap & (delta ^ -delta);
+      delta += 1;
+
+      for (let i = 0; i < params.P + 1; i++) {
+        t = swap & (f[i] ^ g[i]);
+        f[i] ^= t;
+        g[i] ^= t;
+        t = swap & (v[i] ^ r[i]);
+        v[i] ^= t;
+        r[i] ^= t;
+      }
+
+      for (let i = 0; i < params.P + 1; i++) {
+        g[i] = quotient(g[i], sign, f[i]);
+      }
+      for (let i = 0; i < params.P + 1; i++) {
+        r[i] = quotient(r[i], sign, v[i]);
+      }
+
+      for (let i = 0; i < params.P; i++) {
+        g[i] = g[i + 1];
+      }
+      g[params.P] = 0;
+    }
+
+    sign = f[0];
+    for (let i = 0; i < params.P; i++) {
+      out[i] = sign * v[params.P - 1 - i];
+    }
+
+    if (i16NonzeroMask(delta) === 0) {
+      return R3.from(out, params);
+    } else {
+      throw ErrorType.R3NoSolutionRecip;
+    }
+  }
+
+  rqFromR3(params: ParamsConfig): Rq {
+    const out = new Int16Array(params.P);
+
+    for (let i = 0; i < params.P; i++) {
+      out[i] = fq.freeze(this.coeffs[i], params.Q12, params.Q);
+    }
+
+    return Rq.from(out, params);
+  }
+
+  toBytes(params: ParamsConfig): Uint8Array {
+    return r3Encode(this.coeffs, params);
+  }
+}
+
+```
+
+`src/poly/rq.ts`:
+
+```ts
+import { ParamsConfig } from '../params';
+import * as rqEncode from '../encode/rq';
+import { R3 } from './r3';
+import * as f3 from './f3';
+import * as fq from './fq';
+import { i16NonzeroMask, i16NegativeMask } from '../math';
+import { ErrorType } from '../errors';
+
+export class Rq {
+  public coeffs: Int16Array;
+
+  constructor(params: ParamsConfig) {
+    this.coeffs = new Int16Array(params.P).fill(0);
+  }
+
+  static from(coeffs: Int16Array | Int8Array | number[], params: ParamsConfig): Rq {
+    const rq = new Rq(params);
+    
+    if (coeffs instanceof Int16Array) {
+      rq.coeffs = coeffs;
+    } else {
+      rq.coeffs = new Int16Array(coeffs);
+    }
+    
+    return rq;
+  }
+
+  eqOne(): boolean {
+    for (let i = 1; i < this.coeffs.length; i++) {
+      if (this.coeffs[i] !== 0) {
+        return false;
+      }
+    }
+    return this.coeffs[0] === 1;
+  }
+
+  eqZero(): boolean {
+    for (const c of this.coeffs) {
+      if (c !== 0) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  multR3(gq: R3, params: ParamsConfig): Rq {
+    const out = new Int16Array(params.P);
+    const f = this.coeffs;
+    const g = gq.coeffs;
+    const fg = new Int16Array(params.P + params.P - 1);
+
+    const quotient = (r: number, f: number, g: number): number => {
+      const value = r + f * g;
+      return fq.freeze(value, params.Q12, params.Q);
+    };
+
+    for (let i = 0; i < params.P; i++) {
+      let result = 0;
+
+      for (let j = 0; j <= i; j++) {
+        result = quotient(result, f[j], g[i - j]);
+      }
+
+      fg[i] = result;
+    }
+
+    for (let i = params.P; i < params.P + params.P - 1; i++) {
+      let result = 0;
+
+      for (let j = i - params.P + 1; j < params.P; j++) {
+        result = quotient(result, f[j], g[i - j]);
+      }
+
+      fg[i] = result;
+    }
+
+    for (let i = params.P + params.P - 2; i >= params.P; i--) {
+      fg[i - params.P] = fq.freeze(fg[i - params.P] + fg[i], params.Q12, params.Q);
+      fg[i - params.P + 1] = fq.freeze(fg[i - params.P + 1] + fg[i], params.Q12, params.Q);
+    }
+
+    out.set(fg.subarray(0, params.P));
+
+    return Rq.from(out, params);
+  }
+
+  recip<T extends number>(ratio: T, params: ParamsConfig): Rq {
+    const input = this.coeffs;
+    const out = new Int16Array(params.P);
+    const f = new Int16Array(params.P + 1);
+    const g = new Int16Array(params.P + 1);
+    const v = new Int16Array(params.P + 1);
+    const r = new Int16Array(params.P + 1);
+    let delta: number = 1;
+    let swap: number;
+    let t: number;
+    let f0: number;
+    let g0: number;
+
+    const quotient = (out: Int16Array, f0: number, g0: number, fv: Int16Array) => {
+      for (let i = 0; i < params.P + 1; i++) {
+        const x = f0 * out[i] - g0 * fv[i];
+        out[i] = fq.freeze(x, params.Q12, params.Q);
+      }
+    };
+
+    r[0] = fq.recip(ratio, params.Q12, params.Q);
+    f[0] = 1;
+    f[params.P - 1] = -1;
+    f[params.P] = -1;
+
+    for (let i = 0; i < params.P; i++) {
+      g[params.P - 1 - i] = input[i];
+    }
+
+    g[params.P] = 0;
+    delta = 1;
+
+    for (let _ = 0; _ < 2 * params.P - 1; _++) {
+      for (let i = params.P; i >= 1; i--) {
+        v[i] = v[i - 1];
+      }
+      v[0] = 0;
+
+      swap = i16NegativeMask(-delta) & i16NonzeroMask(g[0]);
+      delta ^= swap & (delta ^ -delta);
+      delta += 1;
+
+      for (let i = 0; i < params.P + 1; i++) {
+        t = swap & (f[i] ^ g[i]);
+        f[i] ^= t;
+        g[i] ^= t;
+        t = swap & (v[i] ^ r[i]);
+        v[i] ^= t;
+        r[i] ^= t;
+      }
+
+      f0 = f[0];
+      g0 = g[0];
+
+      quotient(g, f0, g0, f);
+      quotient(r, f0, g0, v);
+
+      for (let i = 0; i < params.P; i++) {
+        g[i] = g[i + 1];
+      }
+
+      g[params.P] = 0;
+    }
+
+    const scale = fq.recip(f[0], params.Q12, params.Q);
+
+    for (let i = 0; i < params.P; i++) {
+      const x = scale * v[params.P - 1 - i];
+      out[i] = fq.freeze(x, params.Q12, params.Q);
+    }
+
+    if (i16NonzeroMask(delta) === 0) {
+      return Rq.from(out, params);
+    } else {
+      throw ErrorType.NoSolutionRecip3;
+    }
+  }
+
+  multInt(num: number, params: ParamsConfig): Rq {
+    const out = new Int16Array(params.P);
+
+    for (let i = 0; i < params.P; i++) {
+      const x = num * this.coeffs[i];
+      out[i] = fq.freeze(x, params.Q12, params.Q);
+    }
+
+    return Rq.from(out, params);
+  }
+
+  r3FromRq(params: ParamsConfig): R3 {
+    const out = new Int8Array(params.P);
+
+    for (let i = 0; i < params.P; i++) {
+      out[i] = f3.freeze(this.coeffs[i]);
+    }
+
+    return R3.from(out, params);
+  }
+
+  toBytes(params: ParamsConfig): Uint8Array {
+    return rqEncode.encode(this.coeffs, params);
+  }
+}
+
+```
+
+`src/rng.ts`:
+
+```ts
+import { ParamsConfig } from './params';
+import { ErrorType } from './errors';
+
+export function urandom32(getRandomValue: () => number): number {
+  const c0 = Math.floor(getRandomValue() * 256);
+  const c1 = Math.floor(getRandomValue() * 256);
+  const c2 = Math.floor(getRandomValue() * 256);
+  const c3 = Math.floor(getRandomValue() * 256);
+
+  return c0 + 256 * c1 + 65536 * c2 + 16777216 * c3;
+}
+
+export function randomSign(getRandomValue: () => number): number {
+  return getRandomValue() < 0.5 ? 1 : -1;
+}
+
+export function randomRange3(getRandomValue: () => number): number {
+  const r = urandom32(getRandomValue);
+  return ((r & 0x3fffffff) * 3 >>> 30) - 1;
+}
+
+export function randomSmall<T extends ParamsConfig>(getRandomValue: () => number, params: T): Int8Array {
+  const r = new Int8Array(params.P);
+  for (let i = 0; i < params.P; i++) {
+    r[i] = randomRange3(getRandomValue);
+  }
+  return r;
+}
+
+export function shortRandom<T extends ParamsConfig>(getRandomValue: () => number, params: T): Int16Array {
+  const list = new Uint32Array(params.P);
+  
+  for (let i = 0; i < params.P; i++) {
+    const value = urandom32(getRandomValue);
+    list[i] = i < params.W ? (value & ~1) : ((value & ~3) | 1);
+  }
+
+  for (let i = 0; i < params.W; i++) {
+    if (list[i] % 2 !== 0) {
+      throw new Error(ErrorType.Mod2ShouldZero);
+    }
+  }
+  
+  for (let i = params.W; i < params.P; i++) {
+    if (list[i] % 4 !== 1) {
+      throw new Error(ErrorType.Mod4ShouldOne);
+    }
+  }
+
+  list.sort();
+
+  const newList = new Int32Array(params.P);
+  let sum = 0;
+
+  for (let i = 0; i < params.P; i++) {
+    const newValue = (list[i] % 4) - 1;
+    
+    if (newValue > 1) {
+      throw new Error(ErrorType.OutOfRange);
+    }
+    
+    newList[i] = newValue;
+    sum += Math.abs(newValue);
+  }
+
+  if (sum !== params.W) {
+    throw new Error(ErrorType.SumShouldEqW);
+  }
+
+  const i16List = new Int16Array(params.P);
+  for (let i = 0; i < params.P; i++) {
+    i16List[i] = newList[i];
+  }
+
+  return i16List;
+}
+
+```
