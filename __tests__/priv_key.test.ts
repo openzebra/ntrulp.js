@@ -26,7 +26,7 @@ describe('PrivKey', () => {
         const secret_key = PrivKey.compute(f, g, params);
 
         // Convert to bytes [cite: 133]
-        const bytes = secret_key.to_bytes(params);
+        const bytes = secret_key.toBytes(params);
         expect(bytes.length).toBe(params.SECRETKEYS_BYTES);
 
         // Import back from bytes [cite: 133]
@@ -76,7 +76,7 @@ describe('PrivKey', () => {
            }
        }
        
-       const bytes = secret_key.to_bytes(params);
+       const bytes = secret_key.toBytes(params);
        expect(bytes.length).toBe(params.SECRETKEYS_BYTES);
    });
 });

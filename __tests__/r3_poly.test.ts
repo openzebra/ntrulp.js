@@ -19,7 +19,7 @@ describe('R3', () => {
           
           expect(one.coeffs[0]).toBe(1);
           
-          expect(one.eq_one()).toBe(true);
+          expect(one.eqOne()).toBe(true);
         } catch (error) {
           continue;
         }
@@ -56,24 +56,24 @@ describe('R3', () => {
   describe('eq_zero and eq_one', () => {
     it('should correctly identify zero polynomials', () => {
       const zero = new R3(params1277);
-      expect(zero.eq_zero()).toBe(true);
+      expect(zero.eqZero()).toBe(true);
       
       const nonZero = R3.from([1, 0, 0], params1277);
-      expect(nonZero.eq_zero()).toBe(false);
+      expect(nonZero.eqZero()).toBe(false);
     });
     
     it('should correctly identify one polynomials', () => {
       const one = new R3(params1277);
       one.coeffs[0] = 1;
-      expect(one.eq_one()).toBe(true);
+      expect(one.eqOne()).toBe(true);
       
       const notOne = new R3(params1277);
       notOne.coeffs[0] = 1;
       notOne.coeffs[1] = 1;
-      expect(notOne.eq_one()).toBe(false);
+      expect(notOne.eqOne()).toBe(false);
       
       const zero = new R3(params1277);
-      expect(zero.eq_one()).toBe(false);
+      expect(zero.eqOne()).toBe(false);
     });
   });
  
@@ -82,7 +82,7 @@ describe('R3', () => {
       const getRandomValue = () => Math.random();
       const r3 = R3.from(randomSmall(getRandomValue, params1277), params1277);
       
-      const bytes = r3.to_bytes(params1277);
+      const bytes = r3.toBytes(params1277);
       expect(bytes.length).toBe(params1277.R3_BYTES);
     });
   });
