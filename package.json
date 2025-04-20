@@ -29,12 +29,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hicaru/ntrup.js.git"
+    "url": "git+https://github.com/openzebra/ntrulp.js.git"
   },
   "bugs": {
-    "url": "https://github.com/hicaru/ntrup.js/issues"
+    "url": "https://github.com/openzebra/ntrulp.js/issues"
   },
-  "homepage": "https://github.com/hicaru/ntrup.js#readme",
+  "homepage": "https://github.com/openzebra/ntrulp.js/blob/master/README.md",
   "devDependencies": {
     "@types/bun": "^1.2.9",
     "@vitest/coverage-v8": "^3.1.1",

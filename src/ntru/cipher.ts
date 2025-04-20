@@ -20,16 +20,13 @@ export function rqDecrypt(c: Rq, privKey: PrivKey, params: ParamsConfig): R3 {
     const e = cf3.r3FromRq(params);
     const ev = e.mult(ginv, params);
 
-    const mask: number = weightWMask(ev.coeffs, params.W); // 0 if weight w, else -1
+    const mask: number = weightWMask(ev.coeffs, params.W);
 
     for (let i = 0; i < params.P; i++) {
        const coeff = ev.coeffs[i];
        if (i < params.W) {
-           // Original Rust: (((ev.coeffs[i] ^ 1) as i16 & !mask) ^ 1) as i8;
-           // JS equivalent: ~mask is 0 if mask is -1, and -1 if mask is 0.
            r_coeffs[i] = (((coeff ^ 1) & ~mask) ^ 1);
        } else {
-           // Original Rust: (ev.coeffs[i] as i16 & !mask) as i8;
            r_coeffs[i] = (coeff & ~mask);
        }
     }
@@ -41,10 +38,9 @@ export function rqDecrypt(c: Rq, privKey: PrivKey, params: ParamsConfig): R3 {
 export function r3Encrypt(r: R3, pubKey: PubKey, params: ParamsConfig): Rq {
     const hr = pubKey.multR3(r, params);
 
-    // Adapt f3.round which expects number[]
     const coeffsAsNumbers = Array.from(hr.coeffs);
     round(coeffsAsNumbers);
-    hr.coeffs = Int16Array.from(coeffsAsNumbers); // Convert back
+    hr.coeffs = Int16Array.from(coeffsAsNumbers);
 
     return hr;
 }
