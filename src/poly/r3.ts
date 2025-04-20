@@ -25,7 +25,7 @@ export class R3 {
     return r3;
   }
 
-  eq_zero(): boolean {
+  eqZero(): boolean {
     for (const c of this.coeffs) {
       if (c !== 0) {
         return false;
@@ -76,7 +76,7 @@ export class R3 {
     return R3.from(out,params);
   }
 
-  eq_one(): boolean {
+  eqOne(): boolean {
     for (let i = 1; i < this.coeffs.length; i++) {
       if (this.coeffs[i] !== 0) {
         return false;
@@ -159,7 +159,7 @@ export class R3 {
     }
   }
 
-  rq_from_r3(params: ParamsConfig): Rq {
+  rqFromR3(params: ParamsConfig): Rq {
     const out = new Int16Array(params.P);
 
     for (let i = 0; i < params.P; i++) {
@@ -169,7 +169,7 @@ export class R3 {
     return Rq.from(out, params);
   }
 
-  to_bytes(params: ParamsConfig): Uint8Array {
+  toBytes(params: ParamsConfig): Uint8Array {
     return r3Encode(this.coeffs, params);
   }
 }

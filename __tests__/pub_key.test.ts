@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { PubKey } from '../src/key/pub_key'; // Assuming the class extending Rq is exported as PubKey
+import { PubKey } from '../src/key/pub_key';
 import { PrivKey } from '../src/key/priv_key';
 import { Rq } from '../src/poly/rq';
 import { R3 } from '../src/poly/r3';
@@ -50,7 +50,6 @@ describe('PubKey', () => {
   });
 
   it('test_from_sk: should correctly derive public key from secret key', () => {
-    // const rng = createSeededRng();
     const rng = Math.random;
     let successCount = 0;
     const attempts = 10; // Increase attempts as PrivKey.compute can also fail

@@ -27,10 +27,10 @@ export class PrivKey {
     }
   }
 
-  to_bytes(params: ParamsConfig): Uint8Array {
+  toBytes(params: ParamsConfig): Uint8Array {
     const sk = new Uint8Array(params.SECRETKEYS_BYTES);
-    const ginvBytes = this.ginv.to_bytes(params);
-    const fBytes = this.f.to_bytes(params);
+    const ginvBytes = this.ginv.toBytes(params);
+    const fBytes = this.f.toBytes(params);
 
     if (ginvBytes.length !== params.R3_BYTES || fBytes.length !== params.R3_BYTES) {
       throw ErrorType.PolyError; 
