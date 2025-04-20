@@ -166,7 +166,7 @@ export class R3 {
       out[i] = fq.freeze(this.coeffs[i], params.Q12, params.Q);
     }
 
-    return Rq.from(out);
+    return Rq.from(out, params);
   }
 
   to_bytes(params: ParamsConfig): Uint8Array {
