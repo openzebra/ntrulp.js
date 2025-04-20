@@ -1,22 +1,21 @@
-# ntrup.js
+# NTRU Prime (ntrup.js)
 
-[![npm](https://img.shields.io/npm/v/@hicaru/ntrup.js)](https://www.npmjs.com/package/@hicaru/ntrup.js)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![npm version](https://img.shields.io/npm/v/@hicaru/ntrup.js.svg)](https://www.npmjs.com/package/@hicaru/ntrup.js)
+[![license](https://img.shields.io/npm/l/@hicaru/ntrup.js.svg)](https://github.com/openzebra/ntrulp.js/blob/master/LICENSE)
 
-A pure JavaScript implementation of the NTRU Prime post-quantum cryptography algorithm. This library is a TypeScript/JavaScript port of the [Rust NTRU Prime implementation](https://github.com/openzebra/ntrulp).
+A pure JavaScript implementation of the NTRU Prime post-quantum cryptography algorithm. This library is a JavaScript port of the [Rust NTRU Prime implementation](https://github.com/openzebra/ntrulp).
 
-## What is NTRU Prime?
+## Overview
 
-NTRU Prime is a lattice-based key encapsulation mechanism (KEM) that is believed to be secure against quantum computer attacks. It was designed to avoid potential security issues in other lattice-based cryptosystems while maintaining efficiency.
-
-The NTRU Prime algorithm was proposed by Daniel J. Bernstein, Chitchanok Chuengsatiansup, Tanja Lange, and Christine van Vredendaal in their paper ["NTRU Prime: Reducing Attack Surface at Low Cost"](https://ntruprime.cr.yp.to/ntruprime-20170816.pdf).
+NTRU Prime is a quantum-resistant public-key encryption algorithm and key encapsulation mechanism (KEM) based on the NTRU cryptosystem. This library provides a JavaScript implementation that can be used in both Node.js and browser environments.
 
 ## Features
 
-- Pure JavaScript implementation with TypeScript typings
-- Multiple parameter sets for different security levels (653, 761, 857, 953, 1013, 1277)
-- Key generation, encryption, and decryption functionality
-- No external dependencies apart from [@hicaru/chacharand.js](https://www.npmjs.com/package/@hicaru/chacharand.js) for randomness
+- Pure JavaScript implementation with TypeScript type definitions
+- Multiple parameter sets for different security levels
+- Key generation, encryption, and decryption functions
+- No native dependencies
+- Compatible with browser and Node.js environments
 
 ## Installation
 
@@ -24,216 +23,225 @@ The NTRU Prime algorithm was proposed by Daniel J. Bernstein, Chitchanok Chuengs
 npm install @hicaru/ntrup.js
 ```
 
+or using yarn:
+
+```bash
+yarn add @hicaru/ntrup.js
+```
+
 ## Usage
 
-### Basic Usage
+### Basic Example
 
 ```typescript
-import { 
-  generateKeyPair, 
-  encrypt, 
-  decrypt, 
-  params1277 
-} from '@hicaru/ntrup.js';
+import { generateKeyPair, staticBytesEncrypt, staticBytesDecrypt, params } from '@hicaru/ntrup.js';
 
 // Generate a key pair
-const { publicKey, privateKey } = generateKeyPair(params1277);
+const rng = () => Math.random();
+const { sk, pk } = generateKeyPair(rng, params);
 
-// Encrypt a message
-const message = new Uint8Array([1, 2, 3, 4, 5]); // Your message
-const ciphertext = encrypt(message, publicKey, params1277);
+// Convert keys to bytes for storage/transmission
+const privateKeyBytes = sk.toBytes(params);
+const publicKeyBytes = pk.toBytes(params);
+
+// Example message (must be exactly the size of params.R3_BYTES)
+const message = new Uint8Array(params.R3_BYTES).fill(42);
+
+// Encrypt the message
+const ciphertext = staticBytesEncrypt(message, pk, params);
 
 // Decrypt the message
-const decrypted = decrypt(ciphertext, privateKey, params1277);
+const decrypted = staticBytesDecrypt(ciphertext, sk, params);
+
+// Verify the decryption was successful
+console.log(
+  'Decryption successful:',
+  Array.from(message).toString() === Array.from(decrypted).toString()
+);
 ```
 
-### Specifying Parameter Sets
+### Choosing Parameter Sets
 
-The library provides multiple parameter sets with different security levels:
+The library includes several parameter sets with different security levels:
 
 ```typescript
 import { 
-  generateKeyPair, 
-  params653,  // Lower security, better performance
-  params761,
-  params857,
-  params953,
-  params1013,
-  params1277  // Higher security, default
+  params653,   // Level 1 - 128-bit classical/64-bit quantum security
+  params761,   // Level 2 - 142-bit classical/71-bit quantum security
+  params857,   // Level 3 - 161-bit classical/80-bit quantum security
+  params953,   // Level 4 - 178-bit classical/89-bit quantum security
+  params1013,  // Level 5 - 190-bit classical/95-bit quantum security
+  params1277   // Level 6 - 240-bit classical/120-bit quantum security
 } from '@hicaru/ntrup.js';
 
-// Generate key pair with specified parameters
-const { publicKey, privateKey } = generateKeyPair(params761);
+// Generate keys with a specific parameter set
+const { sk, pk } = generateKeyPair(rng, params761);
 ```
 
-### Key Export/Import
+By default, `params` is set to `params1277` for maximum security.
+
+## Advanced Features
+
+### Polynomial Operations
+
+The library provides low-level access to polynomial operations in the R3 and Rq rings:
 
 ```typescript
-import { 
-  generateKeyPair, 
-  importPublicKey,
-  importPrivateKey,
-  params1277 
-} from '@hicaru/ntrup.js';
+import { R3, Rq, params } from '@hicaru/ntrup.js';
 
-// Generate a key pair
-const { publicKey, privateKey } = generateKeyPair(params1277);
+// Create polynomials
+const f = R3.from(new Int8Array(params.P).fill(1), params);
+const g = R3.from(new Int8Array(params.P).fill(-1), params);
 
-// Export keys to bytes
-const publicKeyBytes = publicKey.toBytes(params1277);
-const privateKeyBytes = privateKey.toBytes(params1277);
+// Perform polynomial multiplication
+const h = f.mult(g, params);
 
-// Import keys from bytes
-const importedPublicKey = importPublicKey(publicKeyBytes, params1277);
-const importedPrivateKey = importPrivateKey(privateKeyBytes, params1277);
+// Convert between rings
+const fRq = f.rqFromR3(params);
+const hR3 = fRq.r3FromRq(params);
 ```
+
+### Custom Random Number Generator
+
+You can provide your own cryptographically secure random number generator:
+
+```typescript
+import { generateKeyPair, params } from '@hicaru/ntrup.js';
+import { randomBytes } from 'crypto';
+
+// Custom RNG using Node.js crypto
+const secureRng = () => randomBytes(4).readUInt32LE(0) / 0xFFFFFFFF;
+
+const { sk, pk } = generateKeyPair(secureRng, params);
+```
+
+## Parameter Details
+
+| Parameter Set | P    | Q    | W   | Security Level               |
+|--------------|------|------|-----|------------------------------|
+| params653    | 653  | 4621 | 288 | 128-bit classical/64-bit quantum  |
+| params761    | 761  | 4591 | 286 | 142-bit classical/71-bit quantum  |
+| params857    | 857  | 5167 | 322 | 161-bit classical/80-bit quantum  |
+| params953    | 953  | 6343 | 396 | 178-bit classical/89-bit quantum  |
+| params1013   | 1013 | 7177 | 448 | 190-bit classical/95-bit quantum  |
+| params1277   | 1277 | 7879 | 492 | 240-bit classical/120-bit quantum |
+
+Where:
+- P: Polynomial degree
+- Q: Modulus for coefficients
+- W: Hamming weight for small polynomials
 
 ## API Reference
 
-### Key Generation
+### Configuration
 
-#### `generateKeyPair(params: ParamsConfig): { publicKey: PubKey, privateKey: PrivKey }`
+```typescript
+interface ParamsConfig {
+  P: number;              // Polynomial degree
+  Q: number;              // Modulus for coefficients
+  W: number;              // Hamming weight for small polynomials
+  Q12: number;            // (Q-1)/2
+  R3_BYTES: number;       // Byte size for R3 polynomials
+  RQ_BYTES: number;       // Byte size for Rq polynomials
+  PUBLICKEYS_BYTES: number; // Byte size for public keys
+  SECRETKEYS_BYTES: number; // Byte size for secret keys
+  DIFFICULT: number;      // Difficulty parameter for weight challenges
+}
+```
 
-Generates a new NTRU Prime key pair.
+### Key Management
 
-- `params`: Parameter set configuration (e.g., `params1277`)
-- Returns: Object containing public and private keys
+```typescript
+// Generate a key pair
+function generateKeyPair(
+  rng: () => number,
+  params: ParamsConfig,
+  maxAttempts?: number
+): { sk: PrivKey, pk: PubKey };
+
+// PrivKey class methods
+class PrivKey {
+  static compute(f: Rq, g: R3, params: ParamsConfig): PrivKey;
+  static import(skBytes: Uint8Array, params: ParamsConfig): PrivKey;
+  toBytes(params: ParamsConfig): Uint8Array;
+}
+
+// PubKey class methods
+class PubKey extends Rq {
+  static compute(f: Rq, g: R3, params: ParamsConfig): PubKey;
+  static fromSk(privKey: PrivKey, params: ParamsConfig): PubKey;
+  static import(bytes: Uint8Array, params: ParamsConfig): PubKey;
+}
+```
 
 ### Encryption/Decryption
 
-#### `encrypt(message: Uint8Array, publicKey: PubKey, params: ParamsConfig): Uint8Array`
-
-Encrypts a message using the recipient's public key.
-
-- `message`: The plaintext message as a Uint8Array
-- `publicKey`: Recipient's public key
-- `params`: Parameter set configuration
-- Returns: Encrypted ciphertext as Uint8Array
-
-#### `decrypt(ciphertext: Uint8Array, privateKey: PrivKey, params: ParamsConfig): Uint8Array`
-
-Decrypts a message using the recipient's private key.
-
-- `ciphertext`: The encrypted message as a Uint8Array
-- `privateKey`: Recipient's private key
-- `params`: Parameter set configuration
-- Returns: Decrypted plaintext as Uint8Array
-
-### Key Import/Export
-
-#### `importPublicKey(bytes: Uint8Array, params: ParamsConfig): PubKey`
-
-Imports a public key from its byte representation.
-
-- `bytes`: Byte representation of the public key
-- `params`: Parameter set configuration
-- Returns: PubKey object
-
-#### `importPrivateKey(bytes: Uint8Array, params: ParamsConfig): PrivKey`
-
-Imports a private key from its byte representation.
-
-- `bytes`: Byte representation of the private key
-- `params`: Parameter set configuration
-- Returns: PrivKey object
-
-### Parameter Sets
-
-The library provides the following parameter sets, each offering different security levels and performance trade-offs:
-
-| Parameter Set | Polynomial Degree | Prime Modulus | Weight | Security Level |
-|---------------|------------------|--------------|--------|---------------|
-| params653     | 653              | 4621         | 288    | 4 (lowest)    |
-| params761     | 761              | 4591         | 286    | 6             |
-| params857     | 857              | 5167         | 322    | 8             |
-| params953     | 953              | 6343         | 396    | 10            |
-| params1013    | 1013             | 7177         | 448    | 12            |
-| params1277    | 1277             | 7879         | 492    | 14 (highest)  |
-
-## Advanced Usage
-
-### Using Custom Random Number Generator
-
 ```typescript
-import { 
-  generateKeyPairWithRng, 
-  params1277 
-} from '@hicaru/ntrup.js';
+// Encrypt a message with a public key
+function staticBytesEncrypt(
+  bytes: Uint8Array,
+  pubKey: PubKey,
+  params: ParamsConfig
+): Uint8Array;
 
-// Custom RNG function
-const customRng = () => Math.random(); // Example, use a cryptographically secure RNG in practice
+// Decrypt a ciphertext with a private key
+function staticBytesDecrypt(
+  cipherBytes: Uint8Array,
+  privKey: PrivKey,
+  params: ParamsConfig
+): Uint8Array;
 
-// Generate key pair with custom RNG
-const { publicKey, privateKey } = generateKeyPairWithRng(customRng, params1277);
+// Lower-level functions
+function r3Encrypt(r: R3, pubKey: PubKey, params: ParamsConfig): Rq;
+function rqDecrypt(c: Rq, privKey: PrivKey, params: ParamsConfig): R3;
 ```
 
-### Low-Level Polynomial Operations
-
-For advanced users who need access to the underlying polynomial operations:
+### Polynomial Rings
 
 ```typescript
-import { 
-  R3, 
-  Rq, 
-  params1277 
-} from '@hicaru/ntrup.js';
+// R3 class for polynomials modulo 3
+class R3 {
+  static from(coeffs: Int8Array | number[], params: ParamsConfig): R3;
+  eqZero(): boolean;
+  eqOne(): boolean;
+  mult(g3: R3, params: ParamsConfig): R3;
+  recip(params: ParamsConfig): R3;
+  rqFromR3(params: ParamsConfig): Rq;
+  toBytes(params: ParamsConfig): Uint8Array;
+}
 
-// Create polynomials
-const r3Poly = new R3(params1277);
-const rqPoly = new Rq(params1277);
-
-// Perform operations
-const product = rqPoly.multR3(r3Poly, params1277);
-```
-
-## Error Handling
-
-The library throws specific error types from the `ErrorType` enum:
-
-```typescript
-import { 
-  encrypt, 
-  ErrorType,
-  params1277 
-} from '@hicaru/ntrup.js';
-
-try {
-  // Attempt encryption
-  const ciphertext = encrypt(message, publicKey, params1277);
-} catch (error) {
-  if (error === ErrorType.ByteslengthError) {
-    console.error('Invalid byte length');
-  } else if (error === ErrorType.KemError) {
-    console.error('General KEM error');
-  } else {
-    console.error('Unexpected error:', error);
-  }
+// Rq class for polynomials modulo q
+class Rq {
+  static from(coeffs: Int16Array | Int8Array | number[], params: ParamsConfig): Rq;
+  eqZero(): boolean;
+  eqOne(): boolean;
+  multR3(gq: R3, params: ParamsConfig): Rq;
+  recip<T extends number>(ratio: T, params: ParamsConfig): Rq;
+  multInt(num: number, params: ParamsConfig): Rq;
+  r3FromRq(params: ParamsConfig): R3;
+  toBytes(params: ParamsConfig): Uint8Array;
 }
 ```
 
 ## Security Considerations
 
-- This library is provided as-is without any security guarantees
-- For production use, consider using audited implementations or standard libraries
-- The security of the implementation depends on the quality of randomness provided
-- Always use cryptographically secure random number generators for key generation
+- Always use a cryptographically secure random number generator for key generation
+- The default parameter set (params1277) offers the highest security level
+- This library has not undergone formal security audits
 
-## Performance
+## Limitations
 
-NTRU Prime operations can be computationally intensive. The different parameter sets provide a trade-off between security and performance:
+- Pure JavaScript implementation may be slower than native implementations
+- Large parameter sets may impact performance, especially in browser environments
 
-- Lower parameter sets (e.g., params653) offer better performance with lower security
-- Higher parameter sets (e.g., params1277) offer stronger security at the cost of performance
+## License
+
+MIT
+
+## Credits
+
+This library is a JavaScript port of the [Rust NTRU Prime implementation](https://github.com/openzebra/ntrulp) by OpenZebra.
 
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Acknowledgements
-
-- Based on the [Rust NTRU Prime implementation](https://github.com/openzebra/ntrulp)
-- NTRU Prime algorithm by Daniel J. Bernstein, Chitchanok Chuengsatiansup, Tanja Lange, and Christine van Vredendaal

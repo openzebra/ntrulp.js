@@ -8,6 +8,7 @@ import { weightWMask } from '../math';
 import { r3Decode } from '../encode/r3';
 import { decode as rqDecode } from '../encode/rq';
 import { ErrorType } from '../errors';
+import { randomSmall, shortRandom } from '../rng';
 
 
 export function rqDecrypt(c: Rq, privKey: PrivKey, params: ParamsConfig): R3 {
@@ -67,3 +68,38 @@ export function staticBytesDecrypt(cipherBytes: Uint8Array, privKey: PrivKey, pa
 
      return decryptedR3.toBytes(params);
 }
+
+export function generateKeyPair(rng: () => number, params: ParamsConfig, maxAttempts = 100): { sk: PrivKey, pk: PubKey } {
+    let sk: PrivKey | null = null;
+    let pk: PubKey | null = null;
+    let attempts = 0;
+
+    while (attempts < maxAttempts) {
+        attempts++;
+        try {
+            const f_coeffs = shortRandom(rng, params);
+            const f = Rq.from(f_coeffs, params);
+            const g_coeffs = randomSmall(rng, params);
+            const g = R3.from(g_coeffs, params);
+            
+            const potential_sk = PrivKey.compute(f, g, params); 
+            const potential_pk = PubKey.compute(f, g, params); 
+
+            sk = potential_sk;
+            pk = potential_pk;
+            break;
+
+        } catch (e) {
+            if (e !== ErrorType.R3NoSolutionRecip && e !== ErrorType.NoSolutionRecip3) {
+                throw e;
+            }
+        }
+    }
+
+    if (!sk || !pk) {
+        throw ErrorType.FailGenerateValidKeyPair;
+    }
+
+    return { sk, pk };
+}
+

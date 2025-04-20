@@ -17,5 +17,6 @@ export enum ErrorType {
   SizeSliceError = 'SizeSliceError',
   ByteslengthError = 'ByteslengthError',
   InvalidR3GInvrBytes = 'InvalidR3GInvrBytes',
-  InvalidR3FBytes = 'InvalidR3FBytes'
-}
+  InvalidR3FBytes = 'InvalidR3FBytes',
+  FailGenerateValidKeyPair = 'FailGenerateValidKeyPair'
+} 

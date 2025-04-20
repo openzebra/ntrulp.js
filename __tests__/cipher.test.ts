@@ -3,55 +3,13 @@ import {
     rqDecrypt, 
     r3Encrypt, 
     staticBytesEncrypt, 
-    staticBytesDecrypt 
+    staticBytesDecrypt, 
+    generateKeyPair
 } from '../src/ntru/cipher';
-import { PubKey } from '../src/key/pub_key'; 
-import { PrivKey } from '../src/key/priv_key';
 import { Rq } from '../src/poly/rq';
-import { R3 } from '../src/poly/r3';
-import { randomSmall, shortRandom } from '../src/rng';
-import { params, ParamsConfig } from '../src/params';
+import { shortRandom } from '../src/rng';
+import { params } from '../src/params';
 import { ErrorType } from '../src/errors';
-
-
-function generateKeyPair(rng: () => number, params: ParamsConfig, maxAttempts = 100): { sk: PrivKey, pk: PubKey } {
-    let sk: PrivKey | null = null;
-    let pk: PubKey | null = null;
-    let attempts = 0;
-
-    while (attempts < maxAttempts) {
-        attempts++;
-        try {
-            const f_coeffs = shortRandom(rng, params);
-            const f = Rq.from(f_coeffs, params);
-            const g_coeffs = randomSmall(rng, params);
-            const g = R3.from(g_coeffs, params);
-            
-            // Try computing secret key (depends on g.recip)
-            const potential_sk = PrivKey.compute(f, g, params); 
-            
-            // Try computing public key (depends on f.recip)
-            const potential_pk = PubKey.compute(f, g, params); 
-
-            // If both succeeded, store them
-            sk = potential_sk;
-            pk = potential_pk;
-            break; // Exit loop on success
-
-        } catch (e) {
-            // Continue loop only if it's an expected reciprocal error
-            if (e !== ErrorType.R3NoSolutionRecip && e !== ErrorType.NoSolutionRecip3) {
-                throw e; // Re-throw unexpected errors
-            }
-        }
-    }
-
-    if (!sk || !pk) {
-        throw new Error(`Failed to generate a valid key pair within ${maxAttempts} attempts.`);
-    }
-
-    return { sk, pk };
-}
 
 
 describe('Cipher Functions', () => {
