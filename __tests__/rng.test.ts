@@ -3,8 +3,8 @@ import {
   randomRange3, 
   randomSmall, 
   shortRandom, 
-} from '../src/rng';
-import { params1277, params653, params761, ParamsConfig } from '../src/params';
+} from '../';
+import { params1277, params653, params761, ParamsConfig } from '../';
 
 function createSeededRng() {
   let seed = 42;

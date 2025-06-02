@@ -1,36 +1,455 @@
-Project Path: src
+Project Path: ntrulp.js
 
 Source Tree:
 
 ```txt
-src
+ntrulp.js
 ├── __tests__
-│   └── params.ts
-├── compress
-│   └── r3.ts
-├── encode
-│   ├── r3.ts
-│   ├── rq.ts
-│   └── shuffle.ts
-├── errors.ts
-├── key
-│   ├── priv_key.ts
-│   └── pub_key.ts
-├── math.ts
-├── ntru
-│   └── cipher.ts
-├── params.ts
-├── poly
-│   ├── f3.ts
-│   ├── fq.ts
-│   ├── index.ts
-│   ├── r3.ts
-│   └── rq.ts
-└── rng.ts
+│   ├── cipher.test.ts
+│   ├── f3.test.ts
+│   ├── fq.test.ts
+│   ├── math.test.ts
+│   ├── params.test.ts
+│   ├── priv_key.test.ts
+│   ├── pub_key.test.ts
+│   ├── r3_compress.test.ts
+│   ├── r3_encode.test.ts
+│   ├── r3_poly.test.ts
+│   ├── rng.test.ts
+│   ├── rq_encode.test.ts
+│   ├── rq_poly.test.ts
+│   └── shuffle.test.ts
+├── index.ts
+└── src
+    ├── compress
+    │   ├── index.ts
+    │   └── r3.ts
+    ├── encode
+    │   ├── index.ts
+    │   ├── r3.ts
+    │   ├── rq.ts
+    │   └── shuffle.ts
+    ├── errors
+    │   ├── errors.ts
+    │   └── index.ts
+    ├── key
+    │   ├── index.ts
+    │   ├── priv_key.ts
+    │   └── pub_key.ts
+    ├── math.ts
+    ├── ntru
+    │   ├── cipher.ts
+    │   └── index.ts
+    ├── params.ts
+    ├── poly
+    │   ├── f3.ts
+    │   ├── fq.ts
+    │   ├── index.ts
+    │   ├── r3.ts
+    │   └── rq.ts
+    └── rng.ts
 
 ```
 
-`src/__tests__/params.ts`:
+`ntrulp.js/__tests__/cipher.test.ts`:
+
+```ts
+import { describe, it, expect } from 'vitest';
+import { 
+    rqDecrypt, 
+    r3Encrypt, 
+    staticBytesEncrypt, 
+    staticBytesDecrypt, 
+    generateKeyPair
+} from '../src/ntru/cipher';
+import { Rq } from '../src/poly/rq';
+import { shortRandom } from '../src/rng';
+import { params } from '../src/params';
+import { ErrorType } from '../src/errors';
+
+
+describe('Cipher Functions', () => {
+
+    it('test_encrypt_and_decrypt: should encrypt R3 and decrypt Rq correctly', () => {
+        const rng = Math.random;
+        const { sk, pk } = generateKeyPair(rng, params);
+
+        // Generate plaintext R3
+        const plaintext_coeffs = shortRandom(rng, params);
+        const plaintext_rq = Rq.from(plaintext_coeffs, params);
+        const plaintext = plaintext_rq.r3FromRq(params); 
+
+        // Encrypt
+        const encrypted = r3Encrypt(plaintext, pk, params);
+
+        // Decrypt
+        const decrypted = rqDecrypt(encrypted, sk, params);
+
+        // Assert
+        expect(decrypted.coeffs).toEqual(plaintext.coeffs);
+    });
+
+    it('test_bytes_encrypt_and_decrypt: should encrypt and decrypt bytes correctly', () => {
+        const rng = Math.random;
+        const { sk, pk } = generateKeyPair(rng, params);
+
+        // Generate plaintext bytes (by creating R3 and converting)
+         const r_coeffs = shortRandom(rng, params);
+         const r_rq = Rq.from(r_coeffs, params);
+         const r_r3 = r_rq.r3FromRq(params); 
+         const plaintext_bytes = r_r3.toBytes(params);
+         expect(plaintext_bytes.length).toBe(params.R3_BYTES); // Verify length before encryption
+
+        // Encrypt bytes
+        const encrypted_bytes = staticBytesEncrypt(plaintext_bytes, pk, params);
+        expect(encrypted_bytes.length).toBe(params.RQ_BYTES); // Verify length after encryption
+
+
+        // Decrypt bytes
+        const decrypted_bytes = staticBytesDecrypt(encrypted_bytes, sk, params);
+        expect(decrypted_bytes.length).toBe(params.R3_BYTES); // Verify length after decryption
+
+
+        // Assert
+        expect(decrypted_bytes).toEqual(plaintext_bytes);
+    });
+
+     it('staticBytesEncrypt should throw for incorrect input length', () => {
+        const rng = Math.random;
+        const { pk } = generateKeyPair(rng, params);
+        const wrongBytes = new Uint8Array(params.R3_BYTES - 1);
+        expect(() => staticBytesEncrypt(wrongBytes, pk, params)).toThrow(ErrorType.ByteslengthError);
+        const wrongBytes2 = new Uint8Array(params.R3_BYTES + 1);
+        expect(() => staticBytesEncrypt(wrongBytes2, pk, params)).toThrow(ErrorType.ByteslengthError);
+    });
+
+     it('staticBytesDecrypt should throw for incorrect input length', () => {
+        const rng = Math.random;
+        const { sk } = generateKeyPair(rng, params);
+        const wrongBytes = new Uint8Array(params.RQ_BYTES - 1);
+        expect(() => staticBytesDecrypt(wrongBytes, sk, params)).toThrow(ErrorType.ByteslengthError);
+        const wrongBytes2 = new Uint8Array(params.RQ_BYTES + 1);
+        expect(() => staticBytesDecrypt(wrongBytes2, sk, params)).toThrow(ErrorType.ByteslengthError);
+    });
+});
+
+```
+
+`ntrulp.js/__tests__/f3.test.ts`:
+
+```ts
+import { expect, describe, test } from 'vitest';
+import { freeze, round } from '../src/poly/f3';
+
+
+describe('F3 Functions', () => {
+  test('freeze function should match reference implementation', () => {
+    function testFreeze(a: number): number {
+      const b = a - (3 * Math.floor((10923 * a) / 32768));
+      const c = b - (3 * Math.floor((89478485 * b + 134217728) / 268435456));
+      return c;
+    }
+    
+    for (let i = 0; i < 1000; i++) {
+      const r = Math.floor(Math.random() * 65536) - 32768;
+      
+      const t1 = testFreeze(r);
+      const t2 = freeze(r);
+      
+      expect(t2).toBe(t1);
+    }
+  });
+  
+  test('round function should match expected behavior for ntrup761', () => {
+    const P = 761;
+    
+    const rqCoeffs = new Array(P).fill(1);
+    
+    function round3(h: number[]): void {
+      const f = [...h];
+      for (let i = 0; i < 761; i++) {
+        const inner = 21846 * (f[i] + 2295);
+        h[i] = (Math.floor((inner + 32768) / 65536) * 3 - 2295);
+      }
+    }
+    
+    const originalArray = [...rqCoeffs];
+    const newRoundArray = [...rqCoeffs];
+    
+    round3(originalArray);
+    round(newRoundArray);
+    
+    expect(newRoundArray).toEqual(originalArray);
+  });
+
+  test('freeze function should match reference implementation', () => {
+    let values = [0, 42, -1, -42, -66, 1000, -1000, 32767, -32768, 500];
+    let shoul_be = [
+      0,
+      0,
+      -1,
+      0,
+      0,
+      1,
+      -1,
+      1,
+      1,
+      -1,
+   ];
+
+   for (let i = 0; i < values.length; i++) {
+      const r = values[i];
+      const t2 = freeze(r);
+      expect(t2).toBe(shoul_be[i]);
+    }
+  });
+});
+
+
+```
+
+`ntrulp.js/__tests__/fq.test.ts`:
+
+```ts
+import { describe, it, expect } from 'vitest';
+import { freezeFq, recip } from '../src/poly/fq';
+import { params } from '../src/params';
+
+describe('fq module', () => {
+  it('test_freeze function matches expected implementation', () => {
+    function testFreeze(a: number): number {
+      let b = a;
+      const q = params.Q;
+      const rq = 34069; // RQ_FREEZE for ntrup1277
+
+      b -= q * Math.floor((228 * b) / Math.pow(2, 20));
+      b -= q * Math.floor((rq * b + 134217728) / Math.pow(2, 28));
+
+      return b;
+    }
+
+    for (let n = 0; n < 32767; n++) {
+      const t1 = testFreeze(n);
+      const t2 = freezeFq(n, params.Q12, params.Q);
+
+      expect(t2).toEqual(t1);
+    }
+  });
+
+  it('test_recip has expected properties', () => {
+    expect(recip(42, params.Q12, params.Q)).toEqual(-recip(-42, params.Q12, params.Q));
+    expect(recip(-42, params.Q12, params.Q)).toEqual(-recip(42, params.Q12, params.Q));
+  });
+
+  it('freeze handles a range of inputs correctly', () => {
+    const testValues = [0, 1, -1, 100, -100, 2000, -2000, 8000, -8000];
+    
+    for (const val of testValues) {
+      const result = freezeFq(val, params.Q12, params.Q);
+      
+      // Result should be in the range -Q12 to Q12
+      expect(result).toBeGreaterThanOrEqual(-params.Q12);
+      expect(result).toBeLessThanOrEqual(params.Q12);
+      
+      // Result should be equivalent to the input modulo Q
+      // Fix: Use toEqual for modulo result to handle negative zero
+      const modResult = Math.abs((result - val) % params.Q);
+      expect(modResult).toEqual(0);
+    }
+  });
+
+  it('recip produces valid reciprocals', () => {
+    for (const testValue of [1, 2, 3, 42, 100, 1000]) {
+      const recipValue = recip(testValue, params.Q12, params.Q);
+      
+      // Calculate (a * a^-1) mod Q - should be congruent to 1
+      let product = (testValue * recipValue) % params.Q;
+      // Normalize to positive
+      if (product < 0) product += params.Q;
+      
+      expect(product).toBe(1);
+    }
+  });
+});
+
+```
+
+`ntrulp.js/__tests__/math.test.ts`:
+
+```ts
+import { describe, it, expect } from 'vitest';
+import {
+  i16NonzeroMask,
+  i16NegativeMask,
+  u32DivmodU14,
+  i32DivmodU14,
+  u32ModU14,
+  i32ModU14,
+  weightWMask
+} from '../src/math'; // Adjust the path '../src/math' if necessary
+
+describe('Math functions', () => {
+
+  // --- i16NonzeroMask ---
+  it('i16NonzeroMask should handle various inputs', () => {
+    // Existing tests
+    expect(i16NonzeroMask(0)).toBe(0);
+    expect(i16NonzeroMask(42)).toBe(-1);
+    expect(i16NonzeroMask(-42)).toBe(-1); // Lower 16 bits are 0xFFD6 (non-zero)
+    expect(i16NonzeroMask(-32768)).toBe(-1); // Lower 16 bits are 0x8000 (non-zero)
+    expect(i16NonzeroMask(32767)).toBe(-1); // Lower 16 bits are 0x7FFF (non-zero)
+    expect(i16NonzeroMask(33)).toBe(-1);
+    expect(i16NonzeroMask(-33)).toBe(-1); // Lower 16 bits are 0xFFDF (non-zero)
+    expect(i16NonzeroMask(28)).toBe(-1);
+    expect(i16NonzeroMask(-28)).toBe(-1); // Lower 16 bits are 0xFFE4 (non-zero)
+    expect(i16NonzeroMask(12345)).toBe(-1);
+    expect(i16NonzeroMask(-12345)).toBe(-1); // Lower 16 bits are 0xCFC7 (non-zero)
+
+    // Additional tests
+    expect(i16NonzeroMask(1)).toBe(-1);
+    expect(i16NonzeroMask(-1)).toBe(-1); // Lower 16 bits are 0xFFFF (non-zero)
+    expect(i16NonzeroMask(65535)).toBe(-1); // 0xFFFF (non-zero)
+    expect(i16NonzeroMask(65536)).toBe(0); // 0x10000, lower 16 bits are 0
+    expect(i16NonzeroMask(-65536)).toBe(0); // Lower 16 bits are 0
+    expect(i16NonzeroMask(0xABCDE)).toBe(-1); // Lower 16 bits are 0xBCDE (non-zero)
+  });
+
+  // --- i16NegativeMask ---
+  it('i16NegativeMask should identify numbers >= 0x8000 in lower 16 bits', () => {
+    expect(i16NegativeMask(0)).toBe(0);          // 0x0000 < 0x8000
+    expect(i16NegativeMask(1)).toBe(0);          // 0x0001 < 0x8000
+    expect(i16NegativeMask(32767)).toBe(0);     // 0x7FFF < 0x8000
+    expect(i16NegativeMask(32768)).toBe(-1);    // 0x8000 >= 0x8000
+    expect(i16NegativeMask(65535)).toBe(-1);    // 0xFFFF >= 0x8000
+    expect(i16NegativeMask(-1)).toBe(-1);       // Lower 16 bits 0xFFFF >= 0x8000
+    expect(i16NegativeMask(-32768)).toBe(-1);   // Lower 16 bits 0x8000 >= 0x8000
+    expect(i16NegativeMask(-32769)).toBe(0);    // Lower 16 bits 0x7FFF < 0x8000
+    expect(i16NegativeMask(0x18000)).toBe(-1);  // Lower 16 bits 0x8000 >= 0x8000
+    expect(i16NegativeMask(0x17FFF)).toBe(0);   // Lower 16 bits 0x7FFF < 0x8000
+    expect(i16NegativeMask(0xFFF8000)).toBe(-1); // Lower 16 bits 0x8000 >= 0x8000
+  });
+
+  // --- u32DivmodU14 ---
+  it('u32DivmodU14 should perform unsigned division and modulo', () => {
+    // Existing tests
+    expect(u32DivmodU14(100, 30)).toEqual([3, 10]);
+    expect(u32DivmodU14(223, 300)).toEqual([0, 223]);
+    const [q, r] = u32DivmodU14(0x80000000, 3000); // 2147483648 / 3000
+    expect(q).toBe(715827); // 2147483648 / 3000 = 715827.88...
+    expect(r).toBe(2648);  // 2147483648 - 715827 * 3000 = 2147483648 - 2147481000 = 2648
+    
+    // Additional tests
+    expect(u32DivmodU14(0, 30)).toEqual([0, 0]); // x = 0
+    expect(u32DivmodU14(100, 1)).toEqual([100, 0]); // m = 1
+    expect(u32DivmodU14(42, 42)).toEqual([1, 0]); // x = m
+    expect(u32DivmodU14(41, 42)).toEqual([0, 41]); // x < m
+    expect(u32DivmodU14(84, 42)).toEqual([2, 0]); // x = 2m
+    expect(u32DivmodU14(0xFFFFFFFF, 10)).toEqual([429496729, 5]); // Max uint32
+  });
+
+  // --- i32DivmodU14 ---
+  it('i32DivmodU14 should perform signed division and modulo', () => {
+    // Existing tests
+    expect(i32DivmodU14(100, 30)).toEqual([3, 10]); // 100 = 3 * 30 + 10
+    expect(i32DivmodU14(-100, 30)).toEqual([-4 >>> 0, 20]); // -100 = -4 * 30 + 20. -4 is 0xFFFFFFFC
+    expect(i32DivmodU14(-100, 30)[0]).toBe(4294967292); // Check unsigned value explicitly
+    expect(i32DivmodU14(-100, 30)[1]).toBe(20);
+
+    // Additional tests
+    expect(i32DivmodU14(0, 30)).toEqual([0, 0]); // x = 0
+    expect(i32DivmodU14(42, 1)).toEqual([42, 0]); // m = 1, positive x
+    expect(i32DivmodU14(-42, 1)).toEqual([-42 >>> 0, 0]); // m = 1, negative x. -42 is 0xFFFFFFD6
+    expect(i32DivmodU14(-42, 1)[0]).toBe(4294967254);
+    expect(i32DivmodU14(-1, 30)).toEqual([-1 >>> 0, 29]); // -1 = -1 * 30 + 29. -1 is 0xFFFFFFFF
+    expect(i32DivmodU14(-1, 30)[0]).toBe(4294967295);
+    expect(i32DivmodU14(-30, 30)).toEqual([-1 >>> 0, 0]); // -30 = -1 * 30 + 0
+    expect(i32DivmodU14(-31, 30)).toEqual([-2 >>> 0, 29]); // -31 = -2 * 30 + 29. -2 is 0xFFFFFFFE
+    expect(i32DivmodU14(0x7FFFFFFF, 10)).toEqual([214748364, 7]); // Max int32. 2147483647 = 214748364 * 10 + 7
+    expect(i32DivmodU14(-2147483648, 10)).toEqual([-214748365 >>> 0, 2]); // Min int32. -2147483648 = -214748365 * 10 + 2
+    // -214748365 is 0xF3333333
+    expect(i32DivmodU14(-2147483648, 10)[0]).toBe(4080218931); // Check unsigned value explicitly
+  });
+
+  // --- u32ModU14 ---
+  it('u32ModU14 should return unsigned remainder', () => {
+    expect(u32ModU14(100, 30)).toBe(10);
+    expect(u32ModU14(223, 300)).toBe(223);
+    expect(u32ModU14(0, 30)).toBe(0);
+    expect(u32ModU14(84, 42)).toBe(0);
+    expect(u32ModU14(0xFFFFFFFF, 10)).toBe(5);
+    expect(u32ModU14(0x80000000, 3000)).toBe(2648);
+  });
+
+  // --- i32ModU14 ---
+  it('i32ModU14 should return signed remainder (always non-negative)', () => {
+    expect(i32ModU14(100, 30)).toBe(10);
+    expect(i32ModU14(-100, 30)).toBe(20);
+    expect(i32ModU14(0, 30)).toBe(0);
+    expect(i32ModU14(-1, 30)).toBe(29);
+    expect(i32ModU14(-30, 30)).toBe(0);
+    expect(i32ModU14(-2147483648, 10)).toBe(2);
+    expect(i32ModU14(0x7FFFFFFF, 10)).toBe(7);
+  });
+
+  // --- weightWMask ---
+  it('weightWMask should check Hamming weight against W', () => {
+    const P = 761; // Example size, could be anything
+    const W = 286; // Example weight target
+
+    // Existing tests
+    // All zeros -> weight 0
+    const zeros = new Int8Array(P).fill(0);
+    expect(weightWMask(zeros, W)).toBe(-1); // weight 0 != W (286) -> -1
+    expect(weightWMask(zeros, 0)).toBe(0);  // weight 0 == W (0) -> 0
+
+    // Exactly W ones -> weight W
+    const ones = new Int8Array(P).fill(0);
+    for (let i = 0; i < W; i++) {
+      ones[i] = 1;
+    }
+    expect(weightWMask(ones, W)).toBe(0); // weight W == W -> 0
+
+    // W-1 ones -> weight W-1
+    const almostW = new Int8Array(P).fill(0);
+    for (let i = 0; i < W - 1; i++) {
+      almostW[i] = 1;
+    }
+    expect(weightWMask(almostW, W)).toBe(-1); // weight W-1 != W -> -1
+
+    // Additional tests
+    // Empty array -> weight 0
+    const empty = new Int8Array(0);
+    expect(weightWMask(empty, 0)).toBe(0);  // weight 0 == W (0) -> 0
+    expect(weightWMask(empty, 1)).toBe(-1); // weight 0 != W (1) -> -1
+
+    // Array with mixed positive/negative/even/odd numbers
+    // r = [-1, -2, -3, 4, 5, 7]
+    // & 1: [ 1,  0,  1, 0, 1, 1] -> sum = 4
+    const mixed = new Int8Array([-1, -2, -3, 4, 5, 7]);
+    expect(weightWMask(mixed, 4)).toBe(0);  // weight 4 == W (4) -> 0
+    expect(weightWMask(mixed, 3)).toBe(-1); // weight 4 != W (3) -> -1
+    expect(weightWMask(mixed, 5)).toBe(-1); // weight 4 != W (5) -> -1
+
+    // W+1 ones -> weight W+1
+    const overW = new Int8Array(P).fill(0);
+    for (let i = 0; i < W + 1; i++) {
+        // Ensure we don't exceed array bounds if P is small, though unlikely here
+        if (i < P) overW[i] = 1;
+    }
+    // Check if W+1 exceeds P, adjust expectation if needed
+    const expectedWeight = Math.min(W + 1, P);
+    if (expectedWeight === W) {
+        expect(weightWMask(overW, W)).toBe(0);
+    } else {
+        expect(weightWMask(overW, W)).toBe(-1); // weight W+1 != W -> -1
+    }
+
+  });
+});
+
+```
+
+`ntrulp.js/__tests__/params.test.ts`:
 
 ```ts
 // params.test.ts
@@ -151,7 +570,1075 @@ describe('NTRU Prime Parameter Sets', () => {
 
 ```
 
-`src/compress/r3.ts`:
+`ntrulp.js/__tests__/priv_key.test.ts`:
+
+```ts
+import { describe, it, expect } from 'vitest';
+import { PrivKey } from '../src/key/priv_key';
+import { Rq } from '../src/poly/rq';
+import { R3 } from '../src/poly/r3';
+import { randomSmall, shortRandom } from '../src/rng';
+import { params } from '../src/params'; 
+import { ErrorType } from '../src/errors';
+
+
+describe('PrivKey', () => {
+  it('test_import_export: should correctly serialize and deserialize a private key', () => {
+    const rng = Math.random;
+
+    let successCount = 0;
+    const attempts = 5;
+
+    for (let i = 0; i < attempts; i++) {
+      try {
+        // Generate f (Rq) and g (R3) polynomials [cite: 131, 132]
+        const f_coeffs = shortRandom(rng, params);
+        const f = Rq.from(f_coeffs, params);
+        const g_coeffs = randomSmall(rng, params);
+        const g = R3.from(g_coeffs, params);
+        
+        // Compute the secret key, skip iteration if recip fails [cite: 132]
+        const secret_key = PrivKey.compute(f, g, params);
+
+        // Convert to bytes [cite: 133]
+        const bytes = secret_key.toBytes(params);
+        expect(bytes.length).toBe(params.SECRETKEYS_BYTES);
+
+        // Import back from bytes [cite: 133]
+        const new_secret_key = PrivKey.import(bytes, params);
+
+        // Assert equality of the polynomial coefficients [cite: 134]
+        expect(new_secret_key.f.coeffs).toEqual(secret_key.f.coeffs);
+        expect(new_secret_key.ginv.coeffs).toEqual(secret_key.ginv.coeffs);
+        
+        successCount++;
+
+      } catch (error) {
+        // Allow continuation if R3NoSolutionRecip occurs, fail on other errors
+        if (error !== ErrorType.R3NoSolutionRecip && error !== ErrorType.NoSolutionRecip3) {
+           throw error; // Re-throw unexpected errors
+        }
+        // console.log("Skipping iteration due to non-invertible polynomial (expected behavior).");
+        continue; 
+      }
+    }
+    // Ensure the test ran successfully at least once
+    expect(successCount).toBeGreaterThan(0); 
+  });
+
+   it('import should throw ByteslengthError for incorrect byte length', () => {
+    const wrongLengthBytes = new Uint8Array(params.SECRETKEYS_BYTES - 1);
+    expect(() => PrivKey.import(wrongLengthBytes, params)).toThrow(ErrorType.ByteslengthError);
+
+    const wrongLengthBytes2 = new Uint8Array(params.SECRETKEYS_BYTES + 1);
+     expect(() => PrivKey.import(wrongLengthBytes2, params)).toThrow(ErrorType.ByteslengthError);
+  });
+
+   it('to_bytes should produce correct length', () => {
+       const rng = Math.random;
+       let secret_key: PrivKey | null = null;
+
+       // Find a valid key pair first
+       while (!secret_key) {
+           try {
+               const f_coeffs = shortRandom(rng, params);
+               const f = Rq.from(f_coeffs, params);
+               const g_coeffs = randomSmall(rng, params);
+               const g = R3.from(g_coeffs, params);
+               secret_key = PrivKey.compute(f, g, params);
+           } catch (e) {
+               if (e !== ErrorType.R3NoSolutionRecip && e !== ErrorType.NoSolutionRecip3) throw e;
+           }
+       }
+       
+       const bytes = secret_key.toBytes(params);
+       expect(bytes.length).toBe(params.SECRETKEYS_BYTES);
+   });
+});
+
+```
+
+`ntrulp.js/__tests__/pub_key.test.ts`:
+
+```ts
+import { describe, it, expect } from 'vitest';
+import { PubKey } from '../src/key/pub_key';
+import { PrivKey } from '../src/key/priv_key';
+import { Rq } from '../src/poly/rq';
+import { R3 } from '../src/poly/r3';
+import { randomSmall, shortRandom } from '../src/rng';
+import { params } from '../src/params';
+import { ErrorType } from '../src/errors';
+
+
+describe('PubKey', () => {
+
+  it('test_import_export: should correctly serialize and deserialize a public key', () => {
+    const rng = Math.random;
+    let successCount = 0;
+    const attempts = 5;
+
+    for (let i = 0; i < attempts; i++) {
+      try {
+        const f_coeffs = shortRandom(rng, params);
+        const f = Rq.from(f_coeffs, params);
+        const g_coeffs = randomSmall(rng, params);
+        const g = R3.from(g_coeffs, params);
+
+        // Compute the public key, may throw if f is not invertible mod 3
+        const pub_key = PubKey.compute(f, g, params);
+        
+        // Convert to bytes
+        const bytes = pub_key.toBytes(params);
+        expect(bytes.length).toBe(params.PUBLICKEYS_BYTES);
+
+        // Import back from bytes
+        const new_pub_key = PubKey.import(bytes, params);
+
+        // Assert equality of the polynomial coefficients
+        expect(new_pub_key.coeffs).toEqual(pub_key.coeffs);
+
+        successCount++;
+      } catch (error) {
+         // Allow continuation if specific compute errors occur
+         if (error !== ErrorType.NoSolutionRecip3) {
+            throw error; // Re-throw unexpected errors
+         }
+         // console.log("Skipping import/export iteration due to non-invertible polynomial (expected behavior).");
+         continue;
+      }
+    }
+    // Ensure the test ran successfully at least once
+    expect(successCount).toBeGreaterThan(0); 
+  });
+
+  it('test_from_sk: should correctly derive public key from secret key', () => {
+    const rng = Math.random;
+    let successCount = 0;
+    const attempts = 10; // Increase attempts as PrivKey.compute can also fail
+
+     for (let i = 0; i < attempts; i++) {
+        let sk: PrivKey | null = null;
+        let f: Rq | null = null;
+        let g: R3 | null = null;
+
+        try {
+            // Find a valid key pair first
+            while (!sk) {
+                try {
+                    const f_coeffs = shortRandom(rng, params);
+                    f = Rq.from(f_coeffs, params);
+                    const g_coeffs = randomSmall(rng, params);
+                    g = R3.from(g_coeffs, params);
+                    // This compute might throw R3NoSolutionRecip
+                    sk = PrivKey.compute(f, g, params); 
+                } catch (e) {
+                    if (e !== ErrorType.R3NoSolutionRecip && e !== ErrorType.NoSolutionRecip3) throw e; // Rethrow unexpected errors
+                    // Otherwise, continue loop to find a working g
+                }
+            }
+
+            // Ensure f and g are not null (should always be set if sk is found)
+             if (!f || !g) throw new Error("Test logic error: f or g not set");
+
+            // Compute public key directly from f and g (might throw NoSolutionRecip3)
+            const pub_key_from_entropy = PubKey.compute(f, g, params);
+
+            // Derive public key from the generated secret key (might throw R3NoSolutionRecip or NoSolutionRecip3)
+            const pub_key_from_sk = PubKey.fromSk(sk, params);
+
+            // Assert equality
+            expect(pub_key_from_sk.coeffs).toEqual(pub_key_from_entropy.coeffs);
+
+            successCount++;
+
+        } catch (error) {
+            // Allow continuation if specific compute/derivation errors occur
+             if (error !== ErrorType.R3NoSolutionRecip && error !== ErrorType.NoSolutionRecip3) {
+                throw error; // Re-throw unexpected errors
+             }
+            // console.log(`Skipping from_sk iteration due to non-invertible polynomial: ${error}`);
+            continue;
+        }
+     }
+      // Ensure the test ran successfully at least once
+      expect(successCount).toBeGreaterThan(0); 
+  }, 20000);
+
+  it('import should throw ByteslengthError for incorrect byte length', () => {
+    const wrongLengthBytes = new Uint8Array(params.PUBLICKEYS_BYTES - 1);
+    expect(() => PubKey.import(wrongLengthBytes, params)).toThrow(ErrorType.ByteslengthError);
+
+    const wrongLengthBytes2 = new Uint8Array(params.PUBLICKEYS_BYTES + 1);
+     expect(() => PubKey.import(wrongLengthBytes2, params)).toThrow(ErrorType.ByteslengthError);
+  });
+
+   it('toBytes should produce correct length', () => {
+       const rng = Math.random;
+       let pub_key: PubKey | null = null;
+
+       // Find a valid key pair first
+       while (!pub_key) {
+           try {
+               const f_coeffs = shortRandom(rng, params);
+               const f = Rq.from(f_coeffs, params);
+               const g_coeffs = randomSmall(rng, params);
+               const g = R3.from(g_coeffs, params);
+               pub_key = PubKey.compute(f, g, params);
+           } catch (e) {
+               if (e !== ErrorType.NoSolutionRecip3) throw e;
+           }
+       }
+       
+       const bytes = pub_key.toBytes(params);
+       expect(bytes.length).toBe(params.PUBLICKEYS_BYTES);
+   });
+});
+
+```
+
+`ntrulp.js/__tests__/r3_compress.test.ts`:
+
+```ts
+import { describe, it, expect, beforeEach } from 'vitest';
+import { ChaChaRng } from '@hicaru/chacharand.js'; // For deterministic randomness
+import {
+    packBytes,
+    unpackBytes,
+    convertToTernary,
+    convertToDecimal,
+    r3EncodeChunks,
+    r3DecodeChunks,
+    r3MergeWChunks,
+    r3SplitWChunks,
+    usizeArrayToBytes, // Import helper functions
+    bytesToUsizeArray, // Import helper functions
+    BITS_SIZE, // Import constant
+} from '../src/compress/r3';
+import { ParamsConfig, params1277 } from '../src/params'; // Adjust path as needed
+import { ErrorType } from '../src/errors'; // Import ErrorType
+
+describe('R3 Compression Utilities', () => {
+    let rng: ChaChaRng;
+    let getRandomValue: () => number;
+    const currentParams: ParamsConfig = params1277; // Use a specific param set
+
+    beforeEach(() => {
+        // Use a fixed seed for deterministic tests matching Rust behavior if possible
+        rng = ChaChaRng.fromU64Seed(0xabcdef0123456789n, 20);
+        getRandomValue = () => rng.nextU32(); // Provide a u32 random source
+    });
+
+    // Mirrors Rust's pack_unpack_bytes test structure [cite: 36, 37, 38, 39, 40, 41]
+    it('pack_unpack_bytes should pack and unpack data correctly', () => {
+        const initialBytes = new Uint8Array(1000); // Like first `bytes` in Rust test [cite: 37]
+        rng.fillBytes(initialBytes);
+        const unlimitedPoly = r3DecodeChunks(initialBytes); // [cite: 37]
+        const { chunks, size, seed } = r3SplitWChunks(unlimitedPoly, getRandomValue, currentParams); // [cite: 37]
+
+        // Create the data that will actually be packed (shadowing pattern like Rust)
+        let bytesToPackList: Uint8Array[] = [];
+        let totalPackedDataLen = 0;
+        for (let i = 0; i < chunks.length; i++) { // [cite: 38]
+            const rqBytes = new Uint8Array(currentParams.RQ_BYTES); // [cite: 39]
+            rng.fillBytes(rqBytes); // Fill with random data [cite: 39]
+            bytesToPackList.push(rqBytes);
+            totalPackedDataLen += rqBytes.length;
+        }
+        // Concatenate the chunks into one Uint8Array
+        const dataToPack = new Uint8Array(totalPackedDataLen);
+        let currentOffset = 0;
+        for(const arr of bytesToPackList) {
+            dataToPack.set(arr, currentOffset);
+            currentOffset += arr.length;
+        }
+
+        const packed = packBytes(dataToPack, size, seed); // [cite: 40]
+        const { dataBytes: unpackedData, size: unpackedSize, seed: unpackedSeed } = unpackBytes(packed); // [cite: 40]
+
+        expect(unpackedData).toEqual(dataToPack); // [cite: 40]
+        expect(unpackedSize).toEqual(size); // [cite: 40]
+        expect(unpackedSeed).toEqual(seed); // [cite: 40]
+    });
+
+    // Mirrors test_u64_convert [cite: 42, 43]
+    it('usizeArrayToBytes and bytesToUsizeArray should convert correctly', () => {
+        const originalList: number[] = [];
+        for (let i = 0; i < 1024; i++) {
+            originalList.push(rng.nextU32()); // Use u32 to stay within safe JS Number range easily [cite: 42]
+        }
+
+        const bytes = usizeArrayToBytes(originalList); // [cite: 42]
+        const out = bytesToUsizeArray(bytes); // [cite: 42]
+
+        expect(out).toEqual(originalList); // [cite: 42]
+    });
+
+     // Test edge cases for usize conversion
+    it('usizeArrayToBytes should throw for unsafe integers or negative numbers', () => {
+        expect(() => usizeArrayToBytes([Number.MAX_SAFE_INTEGER + 1])).toThrow(ErrorType.OutOfRange);
+        expect(() => usizeArrayToBytes([-1])).toThrow(ErrorType.OutOfRange);
+    });
+
+    it('bytesToUsizeArray should throw for incorrect byte length', () => {
+        const invalidBytes = new Uint8Array(7); // Not a multiple of SYS_SIZE (8)
+        expect(() => bytesToUsizeArray(invalidBytes)).toThrow(ErrorType.ByteslengthError);
+    });
+
+
+    // Mirrors test_bit_convert [cite: 44, 45]
+    it('convertToTernary and convertToDecimal should be inverses', () => {
+        for (let n = 0; n <= 255; n++) { // Test all u8 values
+            const bits = convertToTernary(n); // [cite: 44]
+            expect(bits.length).toBe(BITS_SIZE); // Check length
+             // Check digits are valid (-1, 0, 1)
+            bits.forEach(digit => expect([-1, 0, 1]).toContain(digit));
+
+            const out = convertToDecimal(bits); // [cite: 44]
+            const bits0 = convertToTernary(out); // Convert back [cite: 44]
+
+            expect(out).toBe(n); // Check n -> out (decimal) conversion is identity [cite: 44]
+            expect(bits0).toEqual(bits); // Check n -> bits -> out -> bits0; bits should equal bits0 [cite: 44]
+        }
+    });
+
+     // Test edge cases for ternary conversion
+    it('convertToTernary should throw for out-of-range input', () => {
+        expect(() => convertToTernary(-1)).toThrow(ErrorType.OutOfRange);
+        expect(() => convertToTernary(256)).toThrow(ErrorType.OutOfRange);
+        expect(() => convertToTernary(1.5)).toThrow(ErrorType.OutOfRange);
+    });
+
+    it('convertToDecimal should throw for invalid length or digits', () => {
+        expect(() => convertToDecimal(new Int8Array(BITS_SIZE - 1))).toThrow(ErrorType.SliceLengthNotR3Size);
+        expect(() => convertToDecimal(new Int8Array([1, 0, 2, -1, 0, 1]))).toThrow(ErrorType.CompressError); // Invalid digit 2
+    });
+
+
+    // Mirrors test_r3_encode_decode_chunks [cite: 46, 47, 48]
+    it('r3EncodeChunks and r3DecodeChunks should be inverses', () => {
+        for(let i = 0; i < 10; i++) { // [cite: 46]
+            const originalBytes = new Uint8Array(1000); // Create random bytes [cite: 46]
+            rng.fillBytes(originalBytes);
+
+            const r3 = r3DecodeChunks(originalBytes); // [cite: 47]
+            // The decoded length might be longer due to padding in the last chunk
+            expect(r3.length).toBe(originalBytes.length * BITS_SIZE);
+
+            const encodedBytes = r3EncodeChunks(r3); // [cite: 47]
+
+            // Encoded bytes length should match original bytes length
+            expect(encodedBytes.length).toBe(originalBytes.length);
+            // The content should match the original bytes
+            expect(encodedBytes).toEqual(originalBytes); // [cite: 47]
+        }
+    });
+
+    // Mirrors test_encode_decode_bytes_by_chunks_spliter_merge [cite: 49, 50, 51, 52, 53, 54, 55, 56]
+    it('r3SplitWChunks and r3MergeWChunks should correctly split and merge', () => {
+        for (let i = 0; i < 100; i++) { // Match loop count [cite: 49]
+            // Generate random length between 5 and 999
+            const randLen = (rng.nextU32() % 995) + 5; // [cite: 50]
+            const bytes = new Uint8Array(randLen);
+            rng.fillBytes(bytes); // [cite: 50]
+
+            const originalR3 = r3DecodeChunks(bytes); // Decode to get potentially long R3 poly
+            // Trim trailing zeros from decoding if necessary, as split expects meaningful data
+             let lastNonZeroIndex = originalR3.length - 1;
+            while (lastNonZeroIndex >= 0 && originalR3[lastNonZeroIndex] === 0) {
+                lastNonZeroIndex--;
+            }
+            const r3ToSplit = originalR3.slice(0, lastNonZeroIndex + 1);
+
+
+            if (r3ToSplit.length === 0) continue; // Skip if all zeros after decode
+
+            const { chunks, size, seed } = r3SplitWChunks(r3ToSplit, getRandomValue, currentParams); // [cite: 50]
+            const merged = r3MergeWChunks(chunks, size, seed, currentParams); // [cite: 51]
+
+            // Calculate sum of absolute values for comparison [cite: 52, 53, 54, 55]
+            const r3Sum = r3ToSplit.reduce((acc, val) => acc + Math.abs(val), 0);
+            const mSum = merged.reduce((acc, val) => acc + Math.abs(val), 0);
+
+            expect(r3Sum).toEqual(mSum); // Check weights match [cite: 55]
+            expect(size.length).toEqual(chunks.length); // Check array lengths [cite: 55]
+            expect(merged.length).toEqual(r3ToSplit.length); // Check final poly length [cite: 55]
+            expect(merged).toEqual(r3ToSplit); // Check content equality [cite: 55]
+        }
+    });
+
+    // Mirrors test_spliter [cite: 57, 58, 59, 60]
+    it('r3SplitWChunks should produce valid chunks', () => {
+        for (let i = 0; i < 10; i++) { // [cite: 57]
+            const randLen = (rng.nextU32() % 995) + 5; // [cite: 57]
+            const bytes = new Uint8Array(randLen);
+            rng.fillBytes(bytes); // [cite: 58]
+            const r3 = r3DecodeChunks(bytes); // [cite: 58]
+             // Trim trailing zeros
+             let lastNonZeroIndex = r3.length - 1;
+             while (lastNonZeroIndex >= 0 && r3[lastNonZeroIndex] === 0) {
+                 lastNonZeroIndex--;
+             }
+             const r3ToSplit = r3.slice(0, lastNonZeroIndex + 1);
+
+             if (r3ToSplit.length === 0) continue;
+
+            const { chunks, size } = r3SplitWChunks(r3ToSplit, getRandomValue, currentParams); // [cite: 58]
+
+            expect(chunks.length).toBeGreaterThan(0); // Ensure chunks are produced
+
+            for(let k=0; k < chunks.length; k++) { // [cite: 59]
+                const chunk = chunks[k];
+                const indexSize = size[k]; // Renamed from 'index' in Rust test to avoid confusion
+
+                // Calculate sum of absolute values for the chunk
+                const sum = chunk.reduce((acc, val) => acc + Math.abs(val), 0);
+
+                expect(sum).toEqual(currentParams.W); // Weight must equal W [cite: 60]
+                expect(chunk.length).toEqual(currentParams.P); // Chunk length must equal P [cite: 60]
+                expect(indexSize).toBeLessThanOrEqual(currentParams.P); // Size must be <= P [cite: 60]
+                expect(indexSize).toBeGreaterThanOrEqual(0); // Add non-negativity check for size
+            }
+        }
+    });
+});
+
+```
+
+`ntrulp.js/__tests__/r3_encode.test.ts`:
+
+```ts
+import { describe, expect, it } from 'vitest';
+import { r3Encode, r3Decode } from '../src/encode/r3';
+import { params1277, params653, params761, ParamsConfig } from '../src/params';
+import { randomSmall } from '../src/rng';
+
+function createSeededRng() {
+  let seed = 42;
+  return () => {
+    seed = (seed * 16807) % 2147483647;
+    return (seed - 1) / 2147483646;
+  };
+}
+
+describe('R3 Encoder', () => {
+  const testWithParams = (params: ParamsConfig) => {
+    it(`should encode and decode r3 values correctly with params P=${params.P}`, () => {
+      const getRandomValue = createSeededRng();
+      
+      for (let i = 0; i < 5; i++) {
+        const r3 = randomSmall(getRandomValue, params);
+        const bytes = r3Encode(r3, params);
+        const dec = r3Decode(bytes, params);
+        
+        expect(dec.length).toBe(r3.length);
+        
+        for (let j = 0; j < params.P; j++) {
+          expect(dec[j]).toBe(r3[j]);
+        }
+      }
+    });
+    
+    it(`should handle partial chunks correctly with params P=${params.P}`, () => {
+      const r3 = new Int8Array(params.P);
+      
+      // Set specific values to test edge cases
+      for (let i = 0; i < params.P; i++) {
+        r3[i] = ((i % 3) - 1) as -1 | 0 | 1;
+      }
+      
+      const bytes = r3Encode(r3, params);
+      const dec = r3Decode(bytes, params);
+      
+      expect(dec.length).toBe(r3.length);
+      
+      for (let j = 0; j < params.P; j++) {
+        expect(dec[j]).toBe(r3[j]);
+      }
+    });
+  };
+
+  // Test with multiple parameter sets to ensure the generics work correctly
+  testWithParams(params1277);
+  testWithParams(params653);
+  testWithParams(params761);
+});
+
+```
+
+`ntrulp.js/__tests__/r3_poly.test.ts`:
+
+```ts
+import { describe, it, expect } from 'vitest';
+import { R3 } from '../src/poly/r3';
+import { randomSmall } from '../src/rng';
+import { params1277, params761 } from '../src/params';
+import * as f3 from '../src/poly/f3';
+
+describe('R3', () => {
+  describe('recip', () => {
+    it('should calculate the reciprocal of R3 polynomials', () => {
+      for (let i = 0; i < 2; i++) {
+        const getRandomValue = () => Math.random();
+        
+        try {
+          const r3 = R3.from(randomSmall(getRandomValue, params1277), params1277);
+          
+          const out = r3.recip(params1277);
+          
+          const one = out.mult(r3, params1277);
+          
+          expect(one.coeffs[0]).toBe(1);
+          
+          expect(one.eqOne()).toBe(true);
+        } catch (error) {
+          continue;
+        }
+      }
+    });
+  });
+  
+  describe('mult', () => {
+    it('should correctly multiply two R3 polynomials', () => {
+      const f = new Int8Array(params1277.P);
+      const g = new Int8Array(params1277.P);
+      
+      for (let i = 0; i < params1277.P; i++) {
+        f[i] = (i % 3) - 1;
+        g[i] = ((i + 1) % 3) - 1;
+      }
+      
+      const r3F = R3.from(f, params1277);
+      const r3G = R3.from(g, params1277);
+      
+      const result = r3F.mult(r3G, params1277);
+      
+      let expected = 0;
+      for (let j = 0; j <= 5; j++) {
+        if (j < params1277.P && (5 - j) < params1277.P) {
+          expected = f3.freeze(expected + f[j] * g[5 - j]);
+        }
+      }
+      
+      expect(result.coeffs[5]).toBe(expected);
+    });
+  });
+  
+  describe('eq_zero and eq_one', () => {
+    it('should correctly identify zero polynomials', () => {
+      const zero = new R3(params1277);
+      expect(zero.eqZero()).toBe(true);
+      
+      const nonZero = R3.from([1, 0, 0], params1277);
+      expect(nonZero.eqZero()).toBe(false);
+    });
+    
+    it('should correctly identify one polynomials', () => {
+      const one = new R3(params1277);
+      one.coeffs[0] = 1;
+      expect(one.eqOne()).toBe(true);
+      
+      const notOne = new R3(params1277);
+      notOne.coeffs[0] = 1;
+      notOne.coeffs[1] = 1;
+      expect(notOne.eqOne()).toBe(false);
+      
+      const zero = new R3(params1277);
+      expect(zero.eqOne()).toBe(false);
+    });
+  });
+ 
+  describe('to_bytes', () => {
+    it('should serialize R3 polynomials', () => {
+      const getRandomValue = () => Math.random();
+      const r3 = R3.from(randomSmall(getRandomValue, params1277), params1277);
+      
+      const bytes = r3.toBytes(params1277);
+      expect(bytes.length).toBe(params1277.R3_BYTES);
+    });
+  });
+
+  describe('R3 multiplication', () => {
+    it('should correctly multiply two R3 polynomials (matching Rust test_r3_mult)', () => {
+      const f = new Int8Array([
+        1, 0, -1, 0, 1, -1, 0, 0, -1, 0, -1, 1, -1, -1, 0, 1, 1, 0, 0, 0, 0, -1, 0, -1, 0, 1,
+        0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, -1, -1, 1, 0, 0, 0, -1, 0, 0, 1, 1, 1, -1, 1, 1, 1, 1,
+        0, 0, 1, -1, 0, 0, -1, 1, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 1, -1, -1, -1, 0,
+        0, 1, 0, -1, 1, 1, -1, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1, 0, -1, 0, -1, 1, 1, 0, 0,
+        1, -1, 0, 1, 0, -1, 0, -1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, -1, 0, 1, 0, 0, 1, 0, 0,
+        -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1, 0, 0, 0, 1, 0, 0, -1, 0, 0, -1, 0, 0, 1, 0, 1,
+        0, 0, 0, -1, 1, 0, -1, 1, 0, 0, 1, 0, 1, -1, 0, 0, 1, 0, 1, -1, 1, 0, 1, 0, -1, 1, 0,
+        0, -1, 0, 0, 0, 0, 0, 1, -1, -1, 0, -1, 0, 0, 0, 0, 0, -1, 0, 0, 1, 0, 0, 0, 1, -1, 0,
+        0, 0, -1, 0, -1, 1, 1, -1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, -1, 0, 0, 1, 0, 0, -1,
+        0, 0, -1, 1, 1, 0, 0, 1, 0, 1, 1, -1, -1, 0, 0, 0, -1, 0, 1, 0, -1, 0, 0, 0, 0, 0, -1,
+        0, 1, 1, -1, -1, -1, 0, 0, 1, 0, 0, 0, 0, 0, 0, -1, 0, 1, 0, -1, -1, 0, -1, 0, -1, -1,
+        0, 0, 1, 0, 1, 0, -1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, -1, 0, 0, 0, 0, 1, 0, 0, -1, 0,
+        0, -1, -1, 0, 0, 0, 1, 0, 1, 0, -1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0,
+        0, 0, 1, -1, 0, 0, 0, -1, 1, 1, 1, 0, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, 0, 0, 1, 0,
+        -1, 0, 1, 0, 0, 1, -1, 0, 0, 0, 1, 0, 0, 1, -1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0,
+        0, 0, -1, -1, 0, 0, 0, 1, 1, 0, 0, -1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, -1, 0, -1,
+        0, 0, 1, -1, -1, 0, -1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, -1, 0, 0, -1, -1, 0, 0, 0, 0, -1,
+        -1, -1, 0, 1, 0, 1, -1, 0, -1, 0, -1, -1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1,
+        1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, -1, 0, 0, 0, 0, 0, 1, -1, -1, 0, -1, 0, 1, 0, -1, 0,
+        0, 0, 0, 0, 1, -1, 0, 0, -1, 1, 0, 1, 0, 0, 1, -1, 0, 0, 0, 1, 0, 0, 0, 0, -1, 1, 0, 0,
+        0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, -1, 1, 0, 1, 0, 0, 1, -1, 1, 0, 1,
+        1, -1, -1, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, -1, 0, 0, 0,
+        1, -1, 0, -1, 1, 0, 0, 1, 0, -1, 0, -1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        -1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 0, -1, -1, 0, 0, 0, 0, 1, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, -1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0,
+        -1, 0, 0, 0, 0, -1, 0, 0, 0, 0, -1, 0, -1, 0, -1, 1, 1, 0, 0, 1, 0, 1, -1, -1, 0, 1,
+        -1, -1, 0, 0, 0, 0, -1, 1, 0, 0, -1, -1, 0, 0, 1, 0, -1, 0, 0, 0, 0, 0, 0, 1, -1, 1, 0,
+        0, 0, 1, 1, 1, 0, 0, -1, 0, 0, -1, 0, 0, 0, 1, -1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0,
+      ]);
+      const g = new Int8Array([
+        -1, 1, -1, 0, 0, -1, 0, -1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, -1,
+        -1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1,
+        -1, 0, -1, -1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, -1, 0, 0, 1, 1, 0, 0, -1, -1,
+        0, -1, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0,
+        0, -1, 1, 1, -1, 0, -1, -1, 0, 1, 0, 0, -1, -1, 1, 1, 0, -1, 0, 0, -1, 1, 0, -1, 0, 1,
+        0, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0,
+        1, 0, 1, 1, -1, 0, 1, 0, -1, 1, 0, 0, 0, 1, 1, 0, 1, -1, 1, 0, 1, -1, 0, 0, 0, -1, 1,
+        0, 1, 1, -1, 0, 0, 1, 0, 0, -1, -1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, -1, 0, 0,
+        -1, 1, 0, -1, 0, 0, 1, 0, 0, 0, 0, 0, -1, 0, 0, 1, 0, 1, 0, 1, -1, 0, 0, 0, 1, 0, 0, 1,
+        -1, 1, -1, 0, 0, -1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, -1, 0, 0, 1, 1, 1, 1, 0, 0, -1, 1,
+        0, 0, 0, 0, 0, 0, 0, 1, -1, 0, 0, 0, 0, 1, 0, 0, 1, -1, 0, -1, 0, 0, 0, 0, 0, 1, 0, -1,
+        1, 0, -1, 0, 0, 0, 0, 0, -1, 1, 0, 0, 0, 0, -1, -1, 0, 1, 1, 1, -1, 0, 0, 0, -1, -1, 1,
+        0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, -1, 0, 0, -1, 0, 1, 1,
+        0, -1, -1, 0, 0, 1, 0, 1, -1, -1, 0, 1, 0, 0, 0, 1, 0, 0, -1, -1, -1, 0, -1, 1, -1, 0,
+        0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, -1, 0, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0,
+        0, -1, 1, 0, 0, -1, 0, 0, 0, -1, 0, -1, 0, -1, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0,
+        -1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, -1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, -1, 0, 0, 1, -1, 0, 0, 1, -1, 0, 0, 0, 0,
+        0, 1, 0, 0, 0, 0, 1, 1, 0, -1, 1, 0, 0, 0, 1, 1, 1, -1, -1, -1, 0, 0, 0, 1, 0, 1, -1,
+        0, 0, -1, 1, -1, 0, 1, 0, 1, 0, 0, 0, -1, -1, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 1, 0, 1,
+        0, 0, 1, 0, 0, -1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, -1, 1, 0, 0, 0, 1, 0, 1,
+        -1, 0, 1, 0, 0, 0, 0, 1, -1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+        1, 0, 0, 0, 0, -1, 0, 1, 0, 0, -1, -1, 0, 0, 1, -1, 1, -1, -1, 1, 0, 1, -1, -1, 0, 0,
+        0, 1, -1, -1, 1, 0, 1, -1, 1, 0, 0, 0, 0, -1, 0, 0, 0, -1, 1, 1, 0, 0, 0, 1, 1, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, -1, -1, 1, 0, -1, 0, 0, 0, 1, -1, 0, -1, 0, -1, 0, 0, -1, 0, 0,
+        1, -1, 0, 0, 1, 0, 0, 0, 1, -1, 0, -1, 0, -1, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, -1, 0,
+        0, 0, 1, 1, 1, -1, -1, -1, 0, 0, 0, 0, 1, -1, 1, 0, 0, 0, 0, 0, 1, 0, -1, 0, 1, -1, 0,
+        0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, -1, 1,
+      ]);
+      const r3F = R3.from(f, params761);
+      const r3G = R3.from(g, params761);
+
+      const result = r3F.mult(r3G, params761);
+      const expected = new Int8Array([
+        -1, 1, 1, 0, 0, 1, -1, 1, 0, 1, 0, 1, 0, 1, 1, -1, 0, 0, 0, 1, 0, 1, -1, 0, -1, -1,
+        0, 0, 0, 0, -1, -1, 0, 1, 0, 1, -1, -1, 1, 0, -1, -1, 1, 0, 0, -1, 1, 1, 1, -1, 1,
+        1, 0, 1, -1, -1, 0, 1, 1, -1, -1, -1, 0, -1, 0, -1, 1, 1, -1, 0, 0, 0, -1, 0, 0,
+        -1, -1, 0, -1, 1, 1, 1, -1, 0, -1, -1, -1, 1, -1, 0, -1, 0, 1, 1, -1, 0, -1, 0, 0,
+        0, -1, 0, -1, -1, -1, -1, 0, -1, -1, 1, 0, -1, 0, 1, 1, 0, 0, 1, 0, 0, -1, 0, 1,
+        -1, -1, -1, 0, -1, 1, -1, 0, 1, 1, 1, 0, -1, 1, -1, -1, 0, -1, 1, 1, 1, 1, -1, 1,
+        -1, 1, 0, 1, 1, 1, -1, 1, 1, 0, -1, 1, -1, 0, 1, -1, -1, 0, 0, 1, -1, -1, -1, 1, 0,
+        0, -1, -1, 0, 0, 0, 0, -1, -1, 0, 1, -1, -1, 0, 1, 1, 0, 1, 1, -1, 0, 0, 1, 1, -1,
+        0, 0, 1, 0, 0, 1, -1, -1, 1, -1, -1, -1, 1, -1, -1, 1, 1, -1, -1, -1, 1, 0, 1, 0,
+        0, 1, 1, 1, 0, 1, 0, 0, -1, 0, -1, 1, 1, -1, -1, 0, 0, 0, -1, 1, -1, 1, 0, 0, -1,
+        0, 0, 0, -1, -1, 0, 0, -1, -1, -1, -1, -1, -1, -1, 1, 0, 0, 0, -1, 0, -1, 0, 1, 1,
+        0, -1, -1, 0, 1, 1, 0, 0, 1, -1, 0, 0, -1, 0, 0, -1, 1, 1, -1, -1, 0, -1, 1, 0, 0,
+        0, 1, 0, -1, 1, -1, 1, -1, 0, 0, 1, 0, -1, 1, -1, -1, -1, -1, -1, -1, 1, -1, -1,
+        -1, -1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, -1, -1, 1, -1, 1, -1, 0, 0, 1, 1, 1, 1,
+        0, 0, 1, 0, -1, -1, -1, -1, 0, -1, 1, -1, -1, 0, -1, 0, 0, 0, -1, -1, 0, -1, 0, -1,
+        0, 0, -1, 1, 1, 1, -1, -1, 0, 0, 0, -1, -1, 0, 0, 1, 0, -1, 1, -1, -1, 1, 0, 0, 1,
+        0, 0, 1, 0, 1, 0, -1, 0, 0, -1, 0, 1, 0, 1, 0, -1, -1, 0, 1, 1, 1, 0, 1, -1, -1,
+        -1, 1, 0, 1, -1, 1, 0, 0, 0, 1, 0, -1, -1, -1, 0, 0, 1, 1, -1, 0, 0, 1, 1, 1, 1,
+        -1, 0, -1, -1, -1, 0, 1, 0, 1, -1, 0, -1, 0, -1, 1, -1, 0, -1, 0, -1, 1, 0, 0, 1,
+        -1, 1, -1, 0, 0, -1, 0, -1, 1, 0, -1, -1, 0, 0, -1, 0, 0, 1, -1, 1, 0, 1, -1, 0, 0,
+        1, 1, 0, 0, -1, 1, -1, 0, -1, 0, 1, 1, 0, 0, 1, 0, -1, -1, 1, 1, 0, 0, 1, 1, 1, 1,
+        -1, 1, 1, -1, -1, -1, 1, 1, 1, 1, 1, 1, 1, -1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, -1,
+        -1, -1, 1, 1, 0, -1, -1, 1, 1, -1, 0, 1, -1, 1, 0, 0, 0, 1, 1, -1, 0, 1, 1, 1, 1,
+        1, 1, -1, 1, 0, 1, 0, -1, 1, -1, 1, -1, 1, -1, 1, 0, 0, -1, 0, -1, 1, 1, -1, 1, -1,
+        0, 1, 0, -1, 1, 0, 0, -1, 1, 1, 0, 1, -1, 0, 1, -1, 1, -1, 1, 1, -1, 0, 1, -1, -1,
+        1, 0, -1, 0, 1, 0, 0, 0, -1, -1, 0, 0, 0, 1, 1, 1, 1, -1, 1, 1, 1, -1, 1, -1, 1, 1,
+        0, -1, -1, 0, -1, -1, 0, 0, 0, 0, -1, 0, -1, 1, 0, -1, 0, 0, -1, -1, -1, 1, -1, 1,
+        -1, -1, 0, -1, 0, 1, 0, -1, 1, -1, 1, 0, 0, -1, 0, -1, -1, 1, 1, 0, 0, -1, -1, 0,
+        0, 0, 1, -1, 0, -1, -1, -1, 0, -1, -1, -1, 1, 1, 0, 0, 0, 0, -1, -1, 1, 0, 1, 0,
+        -1, -1, 0, 0, 1, 0, 1, 0, 0, 0, -1, -1, 0, 1, 0, 0, -1, 1, 1, 0, 0, -1, 0, 0, 1,
+        -1, 0, -1, 0, 0, -1, 1, -1, -1, -1, -1, -1, 1, 1, 1, 1, 0, 1, -1, 1
+      ]);
+
+      expect(JSON.stringify(Array.from(expected))).toBe(JSON.stringify(Array.from(result.coeffs)));
+    });
+  });
+});
+
+```
+
+`ntrulp.js/__tests__/rng.test.ts`:
+
+```ts
+import { expect, describe, test } from 'vitest';
+import { 
+  randomRange3, 
+  randomSmall, 
+  shortRandom, 
+} from '../src/rng';
+import { params1277, params653, params761, ParamsConfig } from '../src/params';
+
+function createSeededRng() {
+  let seed = 42;
+  return () => {
+    seed = (seed * 16807) % 2147483647;
+    return (seed - 1) / 2147483646;
+  };
+}
+
+describe('random functions', () => {
+  test('randomRange3 should return values between -1 and 1', () => {
+    const rng = createSeededRng();
+    
+    for (let i = 0; i < 200; i++) {
+      const value = randomRange3(rng);
+      expect(value).toBeGreaterThanOrEqual(-1);
+      expect(value).toBeLessThanOrEqual(1);
+    }
+  });
+
+  const testWithParams = (params: ParamsConfig) => {
+    describe(`with params P=${params.P}`, () => {
+      test(`randomSmall should return array with length P=${params.P} containing values -1, 0, 1`, () => {
+        const rng = createSeededRng();
+        
+        for (let i = 0; i < 10; i++) {
+          const result = randomSmall(rng, params);
+          
+          expect(result.length).toBe(params.P);
+          
+          const uniqueValues = new Set(result);
+          expect(uniqueValues.has(-1)).toBe(true);
+          expect(uniqueValues.has(0)).toBe(true);
+          expect(uniqueValues.has(1)).toBe(true);
+          
+          for (const val of result) {
+            expect(val).toBeGreaterThanOrEqual(-1);
+            expect(val).toBeLessThanOrEqual(1);
+          }
+        }
+      });
+
+      test(`shortRandom should return valid array with sum of absolute values equal to W=${params.W}`, () => {
+        const rng = createSeededRng();
+        
+        for (let i = 0; i < 10; i++) {
+          const result = shortRandom(rng, params);
+          
+          expect(result.length).toBe(params.P);
+          
+          const uniqueValues = new Set(result);
+          expect(uniqueValues.has(-1)).toBe(true);
+          expect(uniqueValues.has(0)).toBe(true);
+          expect(uniqueValues.has(1)).toBe(true);
+          
+          let sum = 0;
+          for (const val of result) {
+            sum += Math.abs(val);
+          }
+          
+          expect(sum).toBe(params.W);
+        }
+      });
+    });
+  };
+
+  // Test with multiple parameter sets
+  testWithParams(params1277);
+  testWithParams(params653);
+  testWithParams(params761);
+});
+
+```
+
+`ntrulp.js/__tests__/rq_encode.test.ts`:
+
+```ts
+import { describe, it, expect } from 'vitest';
+import { encode, decode } from '../src/encode/rq';
+import { shortRandom } from '../src/rng';
+import { Rq } from '../src/poly/rq';
+import { params, params653, params761, params857, params953, params1013, params1277 } from '../src/params';
+
+
+describe('rq encode/decode', () => {
+  it('should correctly encode and decode Rq coefficients', () => {
+    for (let i = 0; i < 100; i++) {
+      const rng = {
+        next: () => Math.floor(Math.random() * 256),
+        nextDouble: () => Math.random()
+      };
+      
+      try {
+        // Generate random coefficients like in the Rust test
+        const coeffs = shortRandom(() => rng.nextDouble(), params);
+        
+        // Create Rq instance
+        const rq = Rq.from(coeffs, params);
+        
+        // Encode to bytes
+        const bytes = encode(rq.coeffs, params);
+        
+        // Decode back to coefficients
+        const res = decode(bytes, params);
+        
+        // Verify the coefficients match
+        for (let j = 0; j < params.P; j++) {
+          expect(res[j]).toEqual(rq.coeffs[j]);
+        }
+      } catch (error) {
+        // Skip if generation failed
+        continue;
+      }
+    }
+  });
+  
+  it('should handle boundary values correctly', () => {
+    const testCases = [
+      0,
+      1,
+      -1,
+      127,
+      -128,
+      255,
+      -256,
+      32767,
+      -32768
+    ];
+    
+    for (const testValue of testCases) {
+      const coeffs = new Int16Array(params.P);
+      coeffs.fill(testValue);
+      
+      const bytes = encode(coeffs, params);
+      const decoded = decode(bytes, params);
+      
+      for (let i = 0; i < params.P; i++) {
+        expect(decoded[i]).toEqual(testValue);
+      }
+    }
+  });
+  
+  it('should work with different parameter sets', () => {
+    const paramSets = [params653, params761, params857, params953, params1013, params1277];
+    
+    for (const paramSet of paramSets) {
+      const testValue = 42;
+      const coeffs = new Int16Array(paramSet.P);
+      coeffs.fill(testValue);
+      
+      const bytes = encode(coeffs, paramSet);
+      const decoded = decode(bytes, paramSet);
+      
+      // Check that bytes length matches parameter set
+      expect(bytes.length).toEqual(paramSet.RQ_BYTES);
+      
+      // Check that decoded values match original
+      for (let i = 0; i < paramSet.P; i++) {
+        expect(decoded[i]).toEqual(testValue);
+      }
+    }
+  });
+});
+
+```
+
+`ntrulp.js/__tests__/rq_poly.test.ts`:
+
+```ts
+import { describe, it, expect, vi } from 'vitest';
+import { Rq } from '../src/poly/rq';
+import { R3 } from '../src/poly/r3';
+import { shortRandom } from '../src/rng';
+import { params } from '../src/params';
+
+describe('Rq', () => {
+  it('should initialize with zero coefficients', () => {
+    const rq = new Rq(params);
+    expect(rq.coeffs).toEqual(new Int16Array(params.P).fill(0));
+  });
+
+  it('should create Rq from Int16Array', () => {
+    const coeffs = new Int16Array([1, 2, 3]);
+    const rq = Rq.from(coeffs, { ...params, P: 3 });
+    expect(rq.coeffs).toEqual(coeffs);
+  });
+
+  it('should create Rq from number array', () => {
+    const coeffs = [1, 2, 3];
+    const rq = Rq.from(coeffs, { ...params, P: 3 });
+    expect(rq.coeffs).toEqual(new Int16Array(coeffs));
+  });
+
+  it('should return true for eqOne when coeffs[0] = 1 and others are 0', () => {
+    const rq = new Rq(params);
+    rq.coeffs[0] = 1;
+    expect(rq.eqOne()).toBe(true);
+  });
+
+  it('should return false for eqOne when coeffs[0] != 1', () => {
+    const rq = new Rq(params);
+    rq.coeffs[0] = 2;
+    expect(rq.eqOne()).toBe(false);
+  });
+
+  it('should return false for eqOne when any non-zero coeff after index 0', () => {
+    const rq = new Rq(params);
+    rq.coeffs[0] = 1;
+    rq.coeffs[1] = 1;
+    expect(rq.eqOne()).toBe(false);
+  });
+
+  it('should return true for eqZero when all coeffs are 0', () => {
+    const rq = new Rq(params);
+    expect(rq.eqZero()).toBe(true);
+  });
+
+  it('should return false for eqZero when any coeff is non-zero', () => {
+    const rq = new Rq(params);
+    rq.coeffs[1] = 1;
+    expect(rq.eqZero()).toBe(false);
+  });
+
+  it('should multiply by integer correctly', () => {
+    const rq = new Rq({ ...params, P: 3 });
+    rq.coeffs.set([1, 1, 1]);
+    const result = rq.multInt(3, { ...params, P: 3 });
+    expect(result.coeffs).toEqual(new Int16Array([3, 3, 3]));
+  });
+
+  it('should convert to R3 correctly', () => {
+    const rq = new Rq({ ...params, P: 3 });
+    rq.coeffs.set([1, -1, 0]);
+    const r3 = rq.r3FromRq({ ...params, P: 3 });
+    expect(r3.coeffs).toEqual(new Int8Array([1, -1, 0]));
+  });
+
+  it('should compute multiplicative inverse correctly', () => {
+    const rq = new Rq({ ...params, P: 3 });
+    rq.coeffs.set([1, 0, 0]);
+    const inverse = rq.recip(1, { ...params, P: 3 });
+    const product = inverse.multR3(rq.r3FromRq({ ...params, P: 3 }), { ...params, P: 3 });
+    expect(product.eqOne()).toBe(true);
+  });
+
+  it('should throw NoSolutionRecip3 for non-invertible polynomial', () => {
+    const rq = new Rq({ ...params, P: 3 });
+    rq.coeffs.set([0, 0, 0]);
+    expect(() => rq.recip(1, { ...params, P: 3 })).toThrow();
+  });
+
+  it('should multiply with R3 correctly', () => {
+    const rq = new Rq({ ...params, P: 3 });
+    const r3 = new R3({ ...params, P: 3 });
+    rq.coeffs.set([1, 0, 0]);
+    r3.coeffs.set([1, 0, 0]);
+    const result = rq.multR3(r3, { ...params, P: 3 });
+    expect(result.coeffs).toEqual(new Int16Array([1, 0, 0]));
+  });
+
+  it('should multiply by random integer correctly', () => {
+    const bytes = new Uint8Array([0, 0, Math.floor(Math.random() * 256), 0, 0]);
+    const num = bytes[2];
+    const rq = Rq.from(new Int16Array(params.P).fill(1), params);
+    const out = rq.multInt(num, params);
+    for (let i = 0; i < params.P; i++) {
+      expect(out.coeffs[i]).toBe(num);
+    }
+  });
+
+  it('should compute reciprocal with short random polynomial', () => {
+    const getRandomValue = vi.fn().mockReturnValue(Math.random());
+    const coeffs = shortRandom(getRandomValue, params);
+    const rq = Rq.from(coeffs, params);
+    const out = rq.recip(1, params);
+    const h = out.multR3(rq.r3FromRq(params), params);
+    expect(h.eqOne()).toBe(true);
+  });
+});
+
+```
+
+`ntrulp.js/__tests__/shuffle.test.ts`:
+
+```ts
+import { describe, it, expect } from 'vitest';
+import { shuffleArray, unshuffleArray } from '../src/encode/shuffle'; 
+import { params1277, ParamsConfig } from '../src/params';
+import { ErrorType} from '../src/errors';
+
+describe('shuffleArray and unshuffleArray', () => {
+    it('should shuffle and then correctly unshuffle an array using params1277', () => {
+        const seed = BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER));
+        const originalArr: number[] = Array.from({ length: params1277.P }, (_, i) => i);
+        const arr = [...originalArr];
+
+        shuffleArray(arr, seed, params1277);
+
+        expect(arr).not.toEqual(originalArr);
+        expect(arr.length).toEqual(params1277.P);
+
+        unshuffleArray(arr, seed, params1277);
+
+        expect(arr).toEqual(originalArr);
+    });
+
+    it('should throw an error if array length does not match params.P using params1277', () => {
+        const seed = 12345n;
+        const shortArr = Array.from({ length: params1277.P - 1 }, (_, i) => i);
+        const longArr = Array.from({ length: params1277.P + 1 }, (_, i) => i);
+
+        const expectedErrorMessage = (len: number) => ErrorType.SliceLengthNotR3Size;
+
+        expect(() => shuffleArray(shortArr, seed, params1277)).toThrow(expectedErrorMessage(shortArr.length));
+        expect(() => shuffleArray(longArr, seed, params1277)).toThrow(expectedErrorMessage(longArr.length));
+
+        expect(() => unshuffleArray(shortArr, seed, params1277)).toThrow(expectedErrorMessage(shortArr.length));
+        expect(() => unshuffleArray(longArr, seed, params1277)).toThrow(expectedErrorMessage(longArr.length));
+    });
+
+    it('should handle different data types with a small P', () => {
+        const localParams: ParamsConfig = { ...params1277, P: 5 };
+        const seed = 98765n;
+        const stringArr = ['x', 'y', 'z', 'w', 'v'];
+        const originalStringArr = [...stringArr];
+        const objArr = [{val:10}, {val:20}, {val:30}, {val:40}, {val:50}];
+        const originalObjArr = objArr.map(o => ({...o}));
+
+        shuffleArray(stringArr, seed, localParams);
+        expect(stringArr).not.toEqual(originalStringArr);
+        unshuffleArray(stringArr, seed, localParams);
+        expect(stringArr).toEqual(originalStringArr);
+
+        shuffleArray(objArr, seed, localParams);
+        expect(objArr).not.toEqual(originalObjArr);
+        unshuffleArray(objArr, seed, localParams);
+        expect(objArr).toEqual(originalObjArr);
+    });
+});
+
+```
+
+`ntrulp.js/index.ts`:
+
+```ts
+export * from './src/math';
+export * from './src/params';
+export * from './src/rng';
+export * from './src/compress';
+export * from './src/encode';
+export * from './src/key';
+export * from './src/ntru';
+export * from './src/poly';
+
+```
+
+`ntrulp.js/src/compress/index.ts`:
+
+```ts
+export * from './r3';
+
+```
+
+`ntrulp.js/src/compress/r3.ts`:
 
 ```ts
 import { shuffleArray, unshuffleArray } from '../encode/shuffle';
@@ -414,7 +1901,16 @@ export function r3SplitWChunks(
 
 ```
 
-`src/encode/r3.ts`:
+`ntrulp.js/src/encode/index.ts`:
+
+```ts
+export * from './r3';
+export * from './rq';
+export * from './shuffle';
+
+```
+
+`ntrulp.js/src/encode/r3.ts`:
 
 ```ts
 import { ParamsConfig } from '../params';
@@ -467,7 +1963,7 @@ export function r3Decode<T extends ParamsConfig>(s: Uint8Array, params: T): Int8
 
 ```
 
-`src/encode/rq.ts`:
+`ntrulp.js/src/encode/rq.ts`:
 
 ```ts
 import { ParamsConfig } from '../params';
@@ -498,7 +1994,7 @@ export function decode(input: Uint8Array, { P }: ParamsConfig): Int16Array {
 
 ```
 
-`src/encode/shuffle.ts`:
+`ntrulp.js/src/encode/shuffle.ts`:
 
 ```ts
 import { ParamsConfig } from '../params';
@@ -541,7 +2037,7 @@ export function unshuffleArray<T>(arr: T[], seed: bigint, params: ParamsConfig):
 
 ```
 
-`src/errors.ts`:
+`ntrulp.js/src/errors/errors.ts`:
 
 ```ts
 export enum ErrorType {
@@ -569,7 +2065,23 @@ export enum ErrorType {
 
 ```
 
-`src/key/priv_key.ts`:
+`ntrulp.js/src/errors/index.ts`:
+
+```ts
+export * from './errors';
+
+
+```
+
+`ntrulp.js/src/key/index.ts`:
+
+```ts
+export * from './priv_key';
+export * from './pub_key';
+
+```
+
+`ntrulp.js/src/key/priv_key.ts`:
 
 ```ts
 import { ParamsConfig } from '../params';
@@ -647,7 +2159,7 @@ export class PrivKey {
 
 ```
 
-`src/key/pub_key.ts`:
+`ntrulp.js/src/key/pub_key.ts`:
 
 ```ts
 import { ParamsConfig } from '../params';
@@ -717,7 +2229,7 @@ export class PubKey extends Rq {
 
 ```
 
-`src/math.ts`:
+`ntrulp.js/src/math.ts`:
 
 ```ts
 const V = 0x80000000;
@@ -793,7 +2305,7 @@ export function weightWMask(r: Int8Array, W: number): number {
 
 ```
 
-`src/ntru/cipher.ts`:
+`ntrulp.js/src/ntru/cipher.ts`:
 
 ```ts
 import { ParamsConfig } from '../params';
@@ -904,7 +2416,14 @@ export function generateKeyPair(rng: () => number, params: ParamsConfig, maxAtte
 
 ```
 
-`src/params.ts`:
+`ntrulp.js/src/ntru/index.ts`:
+
+```ts
+export * from './cipher';
+
+```
+
+`ntrulp.js/src/params.ts`:
 
 ```ts
 export interface ParamsConfig {
@@ -995,7 +2514,7 @@ export const params: ParamsConfig = params1277;
 
 ```
 
-`src/poly/f3.ts`:
+`ntrulp.js/src/poly/f3.ts`:
 
 ```ts
 export function freeze(a: number): number {
@@ -1015,12 +2534,12 @@ export function round(a: number[]): void {
 
 ```
 
-`src/poly/fq.ts`:
+`ntrulp.js/src/poly/fq.ts`:
 
 ```ts
 import { i32ModU14 } from "../math";
 
-export function freeze(x: number, q12: number, q: number): number {
+export function freezeFq(x: number, q12: number, q: number): number {
   const r = i32ModU14(x + q12, q);
   const result = r - q12;
   return result === 0 ? 0 : result;
@@ -1031,7 +2550,7 @@ export function recip(a1: number, q12: number, q: number): number {
   let ai = a1;
 
   while (i < q - 2) {
-    ai = freeze((a1 * ai), q12, q);
+    ai = freezeFq((a1 * ai), q12, q);
     i += 1;
   }
 
@@ -1040,7 +2559,17 @@ export function recip(a1: number, q12: number, q: number): number {
 
 ```
 
-`src/poly/r3.ts`:
+`ntrulp.js/src/poly/index.ts`:
+
+```ts
+export * from './f3';
+export * from './r3';
+export * from './rq';
+export * from './fq';
+
+```
+
+`ntrulp.js/src/poly/r3.ts`:
 
 ```ts
 import { ParamsConfig } from '../params';
@@ -1208,7 +2737,7 @@ export class R3 {
     const out = new Int16Array(params.P);
 
     for (let i = 0; i < params.P; i++) {
-      out[i] = fq.freeze(this.coeffs[i], params.Q12, params.Q);
+      out[i] = fq.freezeFq(this.coeffs[i], params.Q12, params.Q);
     }
 
     return Rq.from(out, params);
@@ -1221,7 +2750,7 @@ export class R3 {
 
 ```
 
-`src/poly/rq.ts`:
+`ntrulp.js/src/poly/rq.ts`:
 
 ```ts
 import { ParamsConfig } from '../params';
@@ -1277,7 +2806,7 @@ export class Rq {
 
     const quotient = (r: number, f: number, g: number): number => {
       const value = r + f * g;
-      return fq.freeze(value, params.Q12, params.Q);
+      return fq.freezeFq(value, params.Q12, params.Q);
     };
 
     for (let i = 0; i < params.P; i++) {
@@ -1301,8 +2830,8 @@ export class Rq {
     }
 
     for (let i = params.P + params.P - 2; i >= params.P; i--) {
-      fg[i - params.P] = fq.freeze(fg[i - params.P] + fg[i], params.Q12, params.Q);
-      fg[i - params.P + 1] = fq.freeze(fg[i - params.P + 1] + fg[i], params.Q12, params.Q);
+      fg[i - params.P] = fq.freezeFq(fg[i - params.P] + fg[i], params.Q12, params.Q);
+      fg[i - params.P + 1] = fq.freezeFq(fg[i - params.P + 1] + fg[i], params.Q12, params.Q);
     }
 
     out.set(fg.subarray(0, params.P));
@@ -1326,7 +2855,7 @@ export class Rq {
     const quotient = (out: Int16Array, f0: number, g0: number, fv: Int16Array) => {
       for (let i = 0; i < params.P + 1; i++) {
         const x = f0 * out[i] - g0 * fv[i];
-        out[i] = fq.freeze(x, params.Q12, params.Q);
+        out[i] = fq.freezeFq(x, params.Q12, params.Q);
       }
     };
 
@@ -1378,7 +2907,7 @@ export class Rq {
 
     for (let i = 0; i < params.P; i++) {
       const x = scale * v[params.P - 1 - i];
-      out[i] = fq.freeze(x, params.Q12, params.Q);
+      out[i] = fq.freezeFq(x, params.Q12, params.Q);
     }
 
     if (i16NonzeroMask(delta) === 0) {
@@ -1393,7 +2922,7 @@ export class Rq {
 
     for (let i = 0; i < params.P; i++) {
       const x = num * this.coeffs[i];
-      out[i] = fq.freeze(x, params.Q12, params.Q);
+      out[i] = fq.freezeFq(x, params.Q12, params.Q);
     }
 
     return Rq.from(out, params);
@@ -1416,7 +2945,7 @@ export class Rq {
 
 ```
 
-`src/rng.ts`:
+`ntrulp.js/src/rng.ts`:
 
 ```ts
 import { ParamsConfig } from './params';

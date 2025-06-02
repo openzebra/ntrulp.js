@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { R3 } from '../src/poly/r3';
-import { randomSmall } from '../src/rng';
-import { params1277, params761 } from '../src/params';
-import * as f3 from '../src/poly/f3';
+import { R3 } from '../';
+import { randomSmall } from '../';
+import { params1277, params761 } from '../';
+import * as f3 from '../';
 
 describe('R3', () => {
   describe('recip', () => {

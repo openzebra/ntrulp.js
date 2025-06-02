@@ -1,6 +1,6 @@
 {
   "name": "@hicaru/ntrup.js",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Pure JavaScript implementation of NTRU Prime post-quantum cryptography algorithm",
   "main": "dist/index.js",
   "module": "dist/index.js",

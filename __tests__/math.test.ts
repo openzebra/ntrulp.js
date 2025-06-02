@@ -7,7 +7,7 @@ import {
   u32ModU14,
   i32ModU14,
   weightWMask
-} from '../src/math'; // Adjust the path '../src/math' if necessary
+} from '../'; 
 
 describe('Math functions', () => {
 

@@ -5,11 +5,11 @@ import {
     staticBytesEncrypt, 
     staticBytesDecrypt, 
     generateKeyPair
-} from '../src/ntru/cipher';
-import { Rq } from '../src/poly/rq';
-import { shortRandom } from '../src/rng';
-import { params } from '../src/params';
-import { ErrorType } from '../src/errors';
+} from '../';
+import { Rq } from '../';
+import { shortRandom } from '../';
+import { params } from '../';
+import { ErrorType } from '../';
 
 
 describe('Cipher Functions', () => {

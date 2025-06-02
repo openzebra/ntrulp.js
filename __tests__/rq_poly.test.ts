@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
-import { Rq } from '../src/poly/rq';
-import { R3 } from '../src/poly/r3';
-import { shortRandom } from '../src/rng';
-import { params } from '../src/params';
+import { Rq } from '../';
+import { R3 } from '../';
+import { shortRandom } from '../';
+import { params } from '../';
 
 describe('Rq', () => {
   it('should initialize with zero coefficients', () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { freezeFq, recip } from '../src/poly/fq';
-import { params } from '../src/params';
+import { freezeFq, recip } from '../';
+import { params } from '../';
 
 describe('fq module', () => {
   it('test_freeze function matches expected implementation', () => {

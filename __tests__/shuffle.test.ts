@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { shuffleArray, unshuffleArray } from '../src/encode/shuffle'; 
-import { params1277, ParamsConfig } from '../src/params';
-import { ErrorType} from '../src/errors';
+import { shuffleArray, unshuffleArray } from '../'; 
+import { params1277, ParamsConfig } from '../';
+import { ErrorType} from '../';
 
 describe('shuffleArray and unshuffleArray', () => {
     it('should shuffle and then correctly unshuffle an array using params1277', () => {

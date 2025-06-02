@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { r3Encode, r3Decode } from '../src/encode/r3';
-import { params1277, params653, params761, ParamsConfig } from '../src/params';
-import { randomSmall } from '../src/rng';
+import { r3Encode, r3Decode } from '../';
+import { params1277, params653, params761, ParamsConfig } from '../';
+import { randomSmall } from '../';
 
 function createSeededRng() {
   let seed = 42;

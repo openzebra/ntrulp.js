@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { PubKey } from '../src/key/pub_key';
-import { PrivKey } from '../src/key/priv_key';
-import { Rq } from '../src/poly/rq';
-import { R3 } from '../src/poly/r3';
-import { randomSmall, shortRandom } from '../src/rng';
-import { params } from '../src/params';
-import { ErrorType } from '../src/errors';
+import { PubKey } from '../';
+import { PrivKey } from '../';
+import { Rq } from '../';
+import { R3 } from '../';
+import { randomSmall, shortRandom } from '../';
+import { params } from '../';
+import { ErrorType } from '../';
 
 
 describe('PubKey', () => {

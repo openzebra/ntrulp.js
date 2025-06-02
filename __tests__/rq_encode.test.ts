@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { encode, decode } from '../src/encode/rq';
-import { shortRandom } from '../src/rng';
-import { Rq } from '../src/poly/rq';
-import { params, params653, params761, params857, params953, params1013, params1277 } from '../src/params';
+import { encode, decode } from '../';
+import { shortRandom } from '../';
+import { Rq } from '../';
+import { params, params653, params761, params857, params953, params1013, params1277 } from '../';
 
 
 describe('rq encode/decode', () => {

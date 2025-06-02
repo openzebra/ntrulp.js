@@ -8,7 +8,7 @@ import {
   params953, 
   params1013, 
   params1277 
-} from '../src/params';
+} from '../';
 
 describe('NTRU Prime Parameter Sets', () => {
   test('params653 has correct values', () => {
