@@ -51,7 +51,7 @@ export class Rq {
 
     const quotient = (r: number, f: number, g: number): number => {
       const value = r + f * g;
-      return fq.freeze(value, params.Q12, params.Q);
+      return fq.freezeFq(value, params.Q12, params.Q);
     };
 
     for (let i = 0; i < params.P; i++) {
@@ -75,8 +75,8 @@ export class Rq {
     }
 
     for (let i = params.P + params.P - 2; i >= params.P; i--) {
-      fg[i - params.P] = fq.freeze(fg[i - params.P] + fg[i], params.Q12, params.Q);
-      fg[i - params.P + 1] = fq.freeze(fg[i - params.P + 1] + fg[i], params.Q12, params.Q);
+      fg[i - params.P] = fq.freezeFq(fg[i - params.P] + fg[i], params.Q12, params.Q);
+      fg[i - params.P + 1] = fq.freezeFq(fg[i - params.P + 1] + fg[i], params.Q12, params.Q);
     }
 
     out.set(fg.subarray(0, params.P));
@@ -100,7 +100,7 @@ export class Rq {
     const quotient = (out: Int16Array, f0: number, g0: number, fv: Int16Array) => {
       for (let i = 0; i < params.P + 1; i++) {
         const x = f0 * out[i] - g0 * fv[i];
-        out[i] = fq.freeze(x, params.Q12, params.Q);
+        out[i] = fq.freezeFq(x, params.Q12, params.Q);
       }
     };
 
@@ -152,7 +152,7 @@ export class Rq {
 
     for (let i = 0; i < params.P; i++) {
       const x = scale * v[params.P - 1 - i];
-      out[i] = fq.freeze(x, params.Q12, params.Q);
+      out[i] = fq.freezeFq(x, params.Q12, params.Q);
     }
 
     if (i16NonzeroMask(delta) === 0) {
@@ -167,7 +167,7 @@ export class Rq {
 
     for (let i = 0; i < params.P; i++) {
       const x = num * this.coeffs[i];
-      out[i] = fq.freeze(x, params.Q12, params.Q);
+      out[i] = fq.freezeFq(x, params.Q12, params.Q);
     }
 
     return Rq.from(out, params);

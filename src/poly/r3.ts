@@ -163,7 +163,7 @@ export class R3 {
     const out = new Int16Array(params.P);
 
     for (let i = 0; i < params.P; i++) {
-      out[i] = fq.freeze(this.coeffs[i], params.Q12, params.Q);
+      out[i] = fq.freezeFq(this.coeffs[i], params.Q12, params.Q);
     }
 
     return Rq.from(out, params);

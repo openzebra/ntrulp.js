@@ -2,3 +2,8 @@ export * from './src/errors';
 export * from './src/math';
 export * from './src/params';
 export * from './src/rng';
+export * from './src/compress';
+export * from './src/encode';
+export * from './src/key';
+export * from './src/ntru';
+export * from './src/poly';

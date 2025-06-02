@@ -1,6 +1,5 @@
-// fq.test.ts
 import { describe, it, expect } from 'vitest';
-import { freeze, recip } from '../src/poly/fq';
+import { freezeFq, recip } from '../src/poly/fq';
 import { params } from '../src/params';
 
 describe('fq module', () => {
@@ -18,7 +17,7 @@ describe('fq module', () => {
 
     for (let n = 0; n < 32767; n++) {
       const t1 = testFreeze(n);
-      const t2 = freeze(n, params.Q12, params.Q);
+      const t2 = freezeFq(n, params.Q12, params.Q);
 
       expect(t2).toEqual(t1);
     }
@@ -33,7 +32,7 @@ describe('fq module', () => {
     const testValues = [0, 1, -1, 100, -100, 2000, -2000, 8000, -8000];
     
     for (const val of testValues) {
-      const result = freeze(val, params.Q12, params.Q);
+      const result = freezeFq(val, params.Q12, params.Q);
       
       // Result should be in the range -Q12 to Q12
       expect(result).toBeGreaterThanOrEqual(-params.Q12);
