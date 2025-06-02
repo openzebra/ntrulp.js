@@ -1,17 +1,17 @@
 // params.test.ts
-import { expect, describe, test } from 'vitest';
-import { 
+import { expect, describe, test } from "vitest";
+import {
   params,
-  params653, 
-  params761, 
-  params857, 
-  params953, 
-  params1013, 
-  params1277 
-} from '../';
+  params653,
+  params761,
+  params857,
+  params953,
+  params1013,
+  params1277,
+} from "../";
 
-describe('NTRU Prime Parameter Sets', () => {
-  test('params653 has correct values', () => {
+describe("NTRU Prime Parameter Sets", () => {
+  test("params653 has correct values", () => {
     expect(params653.P).toBe(653);
     expect(params653.Q).toBe(4621);
     expect(params653.W).toBe(288);
@@ -23,7 +23,7 @@ describe('NTRU Prime Parameter Sets', () => {
     expect(params653.DIFFICULT).toBe(4);
   });
 
-  test('params761 has correct values', () => {
+  test("params761 has correct values", () => {
     expect(params761.P).toBe(761);
     expect(params761.Q).toBe(4591);
     expect(params761.W).toBe(286);
@@ -35,7 +35,7 @@ describe('NTRU Prime Parameter Sets', () => {
     expect(params761.DIFFICULT).toBe(6);
   });
 
-  test('params857 has correct values', () => {
+  test("params857 has correct values", () => {
     expect(params857.P).toBe(857);
     expect(params857.Q).toBe(5167);
     expect(params857.W).toBe(322);
@@ -47,7 +47,7 @@ describe('NTRU Prime Parameter Sets', () => {
     expect(params857.DIFFICULT).toBe(8);
   });
 
-  test('params953 has correct values', () => {
+  test("params953 has correct values", () => {
     expect(params953.P).toBe(953);
     expect(params953.Q).toBe(6343);
     expect(params953.W).toBe(396);
@@ -59,7 +59,7 @@ describe('NTRU Prime Parameter Sets', () => {
     expect(params953.DIFFICULT).toBe(10);
   });
 
-  test('params1013 has correct values', () => {
+  test("params1013 has correct values", () => {
     expect(params1013.P).toBe(1013);
     expect(params1013.Q).toBe(7177);
     expect(params1013.W).toBe(448);
@@ -71,7 +71,7 @@ describe('NTRU Prime Parameter Sets', () => {
     expect(params1013.DIFFICULT).toBe(12);
   });
 
-  test('params1277 has correct values', () => {
+  test("params1277 has correct values", () => {
     expect(params1277.P).toBe(1277);
     expect(params1277.Q).toBe(7879);
     expect(params1277.W).toBe(492);
@@ -83,11 +83,11 @@ describe('NTRU Prime Parameter Sets', () => {
     expect(params1277.DIFFICULT).toBe(14);
   });
 
-  test('default params is params1277', () => {
+  test("default params is params1277", () => {
     expect(params).toBe(params1277);
   });
 
-  test('verifies correct mathematical relationships', () => {
+  test("verifies correct mathematical relationships", () => {
     // Test (Q-1)/2 = Q12 for each parameter set
     expect(Math.floor((params653.Q - 1) / 2)).toBe(params653.Q12);
     expect(Math.floor((params761.Q - 1) / 2)).toBe(params761.Q12);

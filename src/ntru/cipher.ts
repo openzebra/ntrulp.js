@@ -1,3 +1,5 @@
+import type { ChaChaRng } from "@hicaru/chacharand.js";
+
 import { ParamsConfig } from '../params';
 import { PrivKey } from '../key/priv_key';
 import { PubKey } from '../key/pub_key';
@@ -69,7 +71,7 @@ export function staticBytesDecrypt(cipherBytes: Uint8Array, privKey: PrivKey, pa
      return decryptedR3.toBytes(params);
 }
 
-export function generateKeyPair(rng: () => number, params: ParamsConfig, maxAttempts = 100): { sk: PrivKey, pk: PubKey } {
+export function generateKeyPair(rng: ChaChaRng, params: ParamsConfig, maxAttempts = 100): { sk: PrivKey, pk: PubKey } {
     let sk: PrivKey | null = null;
     let pk: PubKey | null = null;
     let attempts = 0;

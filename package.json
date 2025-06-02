@@ -1,6 +1,6 @@
 {
   "name": "@hicaru/ntrup.js",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Pure JavaScript implementation of NTRU Prime post-quantum cryptography algorithm",
   "main": "./dist/index.js",
   "module": "./dist/index.esm.js",
@@ -11,6 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "build": "rollup -c",
+    "format": "prettier --write ./**/*.{js,ts,test.ts}",
     "build:watch": "tsc --watch"
   },
   "keywords": [
@@ -41,6 +42,7 @@
     "@rollup/plugin-typescript": "^12.1.2",
     "@types/bun": "^1.2.9",
     "@vitest/coverage-v8": "^3.1.1",
+    "prettier": "^3.5.3",
     "tslib": "^2.8.1",
     "vitest": "^3.1.1"
   },
@@ -51,6 +53,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@hicaru/chacharand.js": "^0.0.2"
+    "@hicaru/chacharand.js": "^0.0.3"
   }
 }
