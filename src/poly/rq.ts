@@ -184,6 +184,6 @@ export class Rq {
   }
 
   toBytes(params: ParamsConfig): Uint8Array {
-    return rqEncode.encode(this.coeffs, params);
+    return rqEncode.rqEncodeToBytes(this.coeffs, params);
   }
 }

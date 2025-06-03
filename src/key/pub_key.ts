@@ -55,7 +55,7 @@ export class PubKey extends Rq {
          throw ErrorType.ByteslengthError;
       }
       try {
-          const decodedCoeffs = rqEncode.decode(bytes, params);
+          const decodedCoeffs = rqEncode.bytesRqDecode(bytes, params);
           return new PubKey(params, decodedCoeffs); 
       } catch (e) {
           throw ErrorType.KemError; 

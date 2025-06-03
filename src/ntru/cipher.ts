@@ -8,7 +8,7 @@ import { R3 } from '../poly/r3';
 import { round } from '../poly/f3';
 import { weightWMask } from '../math';
 import { r3Decode } from '../encode/r3';
-import { decode as rqDecode } from '../encode/rq';
+import { bytesRqDecode as rqDecode } from '../encode/rq';
 import { ErrorType } from '../errors';
 import { randomSmall, shortRandom } from '../rng';
 

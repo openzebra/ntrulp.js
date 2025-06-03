@@ -1,6 +1,6 @@
 import { ParamsConfig } from '../params';
 
-export function encode(input: Int16Array, { P, RQ_BYTES }: ParamsConfig): Uint8Array {
+export function rqEncodeToBytes(input: Int16Array, { P, RQ_BYTES }: ParamsConfig): Uint8Array {
   const bytes = new Uint8Array(RQ_BYTES);
 
   for (let i = 0; i < P; i++) {
@@ -13,7 +13,7 @@ export function encode(input: Int16Array, { P, RQ_BYTES }: ParamsConfig): Uint8A
   return bytes;
 }
 
-export function decode(input: Uint8Array, { P }: ParamsConfig): Int16Array {
+export function bytesRqDecode(input: Uint8Array, { P }: ParamsConfig): Int16Array {
   const coeffs = new Int16Array(P);
 
   for (let i = 0; i < P; i++) {
