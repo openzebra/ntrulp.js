@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { encode, decode } from "../";
+import { rqEncodeToBytes, bytesRqDecode } from "../";
 import { shortRandom } from "../";
 import { Rq } from "../";
 import {
@@ -11,27 +11,25 @@ import {
   params1013,
   params1277,
 } from "../";
+import { ChaChaRng } from "@hicaru/chacharand.js";
 
 describe("rq encode/decode", () => {
   it("should correctly encode and decode Rq coefficients", () => {
     for (let i = 0; i < 100; i++) {
-      const rng = {
-        next: () => Math.floor(Math.random() * 256),
-        nextDouble: () => Math.random(),
-      };
+      const rng = ChaChaRng.fromU64Seed(42n, 20);
 
       try {
         // Generate random coefficients like in the Rust test
-        const coeffs = shortRandom(() => rng.nextDouble(), params);
+        const coeffs = shortRandom(rng, params);
 
         // Create Rq instance
         const rq = Rq.from(coeffs, params);
 
         // Encode to bytes
-        const bytes = encode(rq.coeffs, params);
+        const bytes = rqEncodeToBytes(rq.coeffs, params);
 
         // Decode back to coefficients
-        const res = decode(bytes, params);
+        const res = bytesRqDecode(bytes, params);
 
         // Verify the coefficients match
         for (let j = 0; j < params.P; j++) {
@@ -51,8 +49,8 @@ describe("rq encode/decode", () => {
       const coeffs = new Int16Array(params.P);
       coeffs.fill(testValue);
 
-      const bytes = encode(coeffs, params);
-      const decoded = decode(bytes, params);
+      const bytes = rqEncodeToBytes(coeffs, params);
+      const decoded = bytesRqDecode(bytes, params);
 
       for (let i = 0; i < params.P; i++) {
         expect(decoded[i]).toEqual(testValue);
@@ -75,8 +73,8 @@ describe("rq encode/decode", () => {
       const coeffs = new Int16Array(paramSet.P);
       coeffs.fill(testValue);
 
-      const bytes = encode(coeffs, paramSet);
-      const decoded = decode(bytes, paramSet);
+      const bytes = rqEncodeToBytes(coeffs, paramSet);
+      const decoded = bytesRqDecode(bytes, paramSet);
 
       // Check that bytes length matches parameter set
       expect(bytes.length).toEqual(paramSet.RQ_BYTES);
